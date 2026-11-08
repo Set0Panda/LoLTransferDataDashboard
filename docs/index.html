@@ -95,8 +95,11 @@
   .tabs { display:flex; gap:6px; margin-bottom:14px; }
   .tab { background:transparent; border:1px solid var(--line); border-radius:8px; padding:6px 14px; cursor:pointer; font-weight:600; color:var(--ink2); }
   .tab[aria-selected="true"] { background:var(--ink); color:var(--bg); border-color:var(--ink); }
-  .rgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; margin:14px 0; align-items:start; }
-  .rgrid.packed { display:flex; align-items:flex-start; } .rcol { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:12px; }
+  .rgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); column-gap:12px; row-gap:0; margin:14px 0; }
+  /* every card spans the same 10 rows and shares the row tracks (subgrid), so headers and each role line up across a row of cards */
+  .rgrid > .rcard { grid-row:span 10; margin-bottom:12px; }
+  @supports (grid-template-rows: subgrid) { .rgrid > .rcard { display:grid; grid-template-rows:subgrid; } }
+  .rlinked:empty, .rxtra:empty { padding:0; margin:0; }
   .rcard { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-width:0; scroll-margin-top:20px; }
   .rcard { --ac:var(--line); border-top:3px solid var(--ac); background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 14%,var(--surface)),var(--surface) 120px); }
   .rcard.rpulse { box-shadow:0 0 0 2px var(--ac); }
