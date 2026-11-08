@@ -17,7 +17,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--only"); r.add_argument("--demo", action="store_true")
-    r.add_argument("--fast", action="store_true", help="news sources only (Sheep + feeds); rewrite data.js only when a new item appears")
+    r.add_argument("--fast", action="store_true", help="news sources only (Sheep + feeds + Google News); rewrite data.js only when a new item appears")
     s = sub.add_parser("search"); s.add_argument("query"); s.add_argument("--category"); s.add_argument("--source")
     s.add_argument("--limit", type=int, default=15); s.add_argument("--demo", action="store_true")
     t = sub.add_parser("stats"); t.add_argument("--demo", action="store_true")
@@ -29,7 +29,7 @@ def main():
         if a.demo:
             import tests.make_fixtures as mf; mf.main()
             con.execute("INSERT OR REPLACE INTO meta VALUES('demo','1')")
-        only = set(a.only.split(",")) if a.only else ({"newsletter", "sheep"} if a.fast else None)
+        only = set(a.only.split(",")) if a.only else ({"newsletter", "sheep", "gnews"} if a.fast else None)
         stats = pipeline.collect(con, cfg, only, fixtures=a.demo)
         pipeline.rescore(con, cfg)
         if not a.fast:

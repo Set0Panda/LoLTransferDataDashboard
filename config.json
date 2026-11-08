@@ -1,5 +1,5 @@
 {
-  "_note": "Feeds verified in a real browser on 2026-11-08. Dot Esports, Inven Global and Esports Charts have no working RSS feed (HTML or 404) so they are removed. Sheep Esports has no feed either: see the 'sheep' block, which reads its sitemap and falls back to Google News RSS when Cloudflare blocks the runner.",
+  "_note": "Feeds verified in a real browser on 2026-11-08. Dot Esports, Inven Global and Esports Charts have no working RSS feed (HTML or 404) so they are removed. Sheep Esports has no feed either: see the 'sheep' block, which reads its sitemap; Cloudflare blocks GitHub runners, so Sheep also arrives through the 'gnews' block (Google News RSS searches).",
   "github": {
     "queries": [
       "topic:league-of-legends esports",
@@ -41,5 +41,26 @@
     "days": 14,
     "max_pages": 60,
     "delay": 0.6
+  },
+  "gnews": {
+    "enabled": true,
+    "days": 7,
+    "per_query": 40,
+    "default_authority": 0.55,
+    "queries": [
+      "\"League of Legends\" (transfer OR rumor OR roster OR \"free agent\" OR signs OR joins OR leaves)",
+      "(LCK OR LEC OR LCS OR LPL OR CBLOL OR LCP) (roster OR transfer OR contract OR 2027)",
+      "\"LoL esports\" (roster OR contract OR extension OR \"free agency\")"
+    ],
+    "authority": {
+      "Sheep Esports": 0.9,
+      "Dot Esports": 0.75,
+      "Insider Gaming": 0.7,
+      "Hotspawn": 0.6,
+      "EGamersWorld": 0.5,
+      "Esports Insider": 0.8,
+      "Dexerto": 0.7,
+      "Inven Global": 0.75
+    }
   }
 }

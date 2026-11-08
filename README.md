@@ -1,6 +1,6 @@
 # LoL Transfer Radar
 
-Collects LoL transfer / contract / roster content from GitHub, YouTube, newsletters (RSS) and Sheep Esports,
+Collects LoL transfer / contract / roster content from GitHub, YouTube, newsletters (RSS) Sheep Esports and Google News searches,
 classifies and scores it, stores it in SQLite (with full-text search) and exports a static dashboard.
 
     python radar.py run --demo        # offline, synthetic data -> open docs/index.html
@@ -18,7 +18,7 @@ Pure Python 3.10+ standard library; pytest only for the tests.
 | `YOUTUBE_API_KEY` | YouTube | required; free quota 10k units/day, each query costs ~100 |
 
 ## How it works
-- `config.json`: GitHub queries, YouTube queries, newsletter feed URLs. Verified feeds: Esports Insider, Dexerto (LoL). Sheep Esports has no RSS, so `radar/collectors/sheep.py` reads its public sitemap and each new article's metadata (title, short description, tags; the `LEAK` tag marks scoops). Dot Esports and Inven Global have no working feed.
+- `config.json`: GitHub queries, YouTube queries, newsletter feed URLs. Verified feeds: Esports Insider, Dexerto (LoL). Google News RSS (`radar/collectors/gnews.py`, queries in `config.json -> gnews`) pulls headlines from publications that block CI directly (Dot Esports, EGamersWorld, Insider Gaming, Hotspawn...); each publisher shows up as its own source, headline-only. Sheep Esports has no RSS, so `radar/collectors/sheep.py` reads its public sitemap and each new article's metadata (title, short description, tags; the `LEAK` tag marks scoops). Dot Esports and Inven Global have no working feed.
 - `radar/classify.py`: keyword categories (editable), league/role tags, relevance 0-1. Items below 0.3 relevance are dropped.
 - `radar/scoring.py`: quality 0-100 = engagement 35% + relevance 25% + source authority 20% + freshness 20%. Tiers: High 70+, Medium 45-69, Low <45. Breakdown stored per item (hover the score in the dashboard).
 - `snapshots` table keeps every run's stars/views, so GitHub "stars this week" becomes real after a week of daily runs.
