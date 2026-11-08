@@ -21,7 +21,40 @@ def _existing_ids(path):
         return None
 
 
-def export(con, out_path, max_items=4000, only_if_new_ids=False):
+class ExportBlocked(Exception):
+    pass
+
+
+def _existing_counts(path):
+    try:
+        txt = open(path, encoding='utf-8').read()
+        c = {}
+        for i in json.loads(txt[len('window.RADAR = '):txt.rindex(';')])['items']:
+            c[i['type']] = c.get(i['type'], 0) + 1
+        return c
+    except Exception:
+        return None
+
+
+def _guard(path, items, force):
+    """Same idea as Contract Radar's refresh guard: a source type that loses more than half its published items in one run
+    (and had at least 20) is far more likely a broken collector or a filter mistake than real news. Keep the last good file
+    and say so; accept it deliberately with force (workflow input or --force)."""
+    old = _existing_counts(path)
+    if not old:
+        return
+    new = {}
+    for i in items:
+        new[i['type']] = new.get(i['type'], 0) + 1
+    bad = [f"{t}: {a} -> {new.get(t, 0)} items" for t, a in old.items() if a >= 20 and new.get(t, 0) < a * 0.5]
+    if bad:
+        if force:
+            print("warning: FORCED, accepted anyway: " + "; ".join(bad))
+        else:
+            raise ExportBlocked("; ".join(bad))
+
+
+def export(con, out_path, max_items=4000, only_if_new_ids=False, force=False):
     rows = con.execute("""SELECT * FROM items ORDER BY COALESCE(published_at, first_seen_at) DESC LIMIT ?""",
                        (max_items,)).fetchall()
     items = []
@@ -40,6 +73,7 @@ def export(con, out_path, max_items=4000, only_if_new_ids=False):
                       "breakdown": json.loads(r["quality_breakdown"]), "relevance": r["relevance"]})
     if only_if_new_ids and _existing_ids(out_path) == {i['id'] for i in items}:
         return 0          # nothing new: leave the file alone so the fast job makes no commit
+    _guard(out_path, items, force)
     srcs = [dict(s) for s in con.execute("SELECT type,name,last_run,last_status,authority FROM sources")]
     meta = {"generated": db.now(), "demo": con.execute("SELECT value FROM meta WHERE key='demo'").fetchone() is not None,
             "sources": srcs}

@@ -49,3 +49,14 @@ Each card also lists the team's **coaches** (from the same sheet; KR coaches are
 Rumoured moves are read from headlines ("X set to join TEAM as Head Coach", "TEAM pick X to replace Y", "set to part ways with X", "reaches verbal agreement with") over the last 21 days and shown on the card as a RUMOUR line in the slot the player would fill, with a "rumour" marker next to the player on his current team; they never count towards the projected slots. It is pattern matching on headlines, so check the linked reports. A Cards / Matrix switch changes the layout: Matrix has one row per team (in ranking order) and one column per role, so a whole league fits on one screen; the choice is remembered in the browser. Click a team header, a "N mentions" chip or "LINKED IN NEWS" to open a side panel: team, roster rows and every headline that names the team or player (a chip opens it with that player highlighted and their headlines first). Esc or the backdrop closes it.
 
 `docs/standings.js` orders each league's cards (rank badge + series record). It is **data copied from Leaguepedia's 2026 standings tables, not a live feed**: Leaguepedia's API rate-limits anonymous callers (it refused my queries), and every league lays its season out differently (LCK/LPL use groups, LCS/LEC/CBLOL a table per split, LCP a Swiss stage), so there is no single table to scrape unattended. Covered: LCK, LPL, LEC, LCS, CBLOL, LCP. Others fall back to A-Z. To refresh after a split ends, run `scripts/extract-standings.browser.js` on lol.fandom.com and paste the result in. `aliases` in that file maps Leaguepedia names to the contract sheet's names.
+
+
+## Safeguards (same principle as Contract Radar)
+
+A bad fetch should never replace good data.
+
+- **Contract data sync** (`scripts/guard_contract.py`, run by `refresh.yml`): each region is compared with the committed snapshot. Up to 15% change passes. Beyond that it is only accepted if the sheet's own "last updated" stamp moved, and a drop over 50% or growth over 100% always needs a human. A stamp going backwards, a missing region or an e-mail address always blocks. A blocked snapshot is skipped, the last good copy stays, and the run shows a warning and a summary.
+- **Feed export** (`radar/export.py`): if any source type (with 20+ published items) loses more than half of them in one run, `docs/data.js` is not rewritten.
+- Both can be overridden on purpose: run the *Refresh radar (full)* workflow manually and tick **force** (or pass `--force` locally).
+
+The **Contract Radar** tab embeds the live site.

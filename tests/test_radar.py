@@ -92,3 +92,28 @@ def test_same_headline_same_publisher_is_a_duplicate():
     b = dict(a, external_id="https://g/2"); c = dict(a, source_name="Dot Esports", external_id="https://g/3")
     db.upsert(con, a)
     assert db.is_duplicate(con, b) and not db.is_duplicate(con, c) and not db.is_duplicate(con, a)
+
+
+def test_export_guard_blocks_big_drop(tmp_path):
+    import json, pytest
+    from radar import export
+    p = tmp_path / "d.js"
+    p.write_text("window.RADAR = " + json.dumps({"items": [{"id": i, "type": "newsletter"} for i in range(60)]}) + ";\n")
+    with pytest.raises(export.ExportBlocked):
+        export._guard(str(p), [{"type": "newsletter"}] * 5, False)
+    export._guard(str(p), [{"type": "newsletter"}] * 5, True)          # force accepts it
+    export._guard(str(p), [{"type": "newsletter"}] * 40, False)        # normal churn passes
+
+
+def test_contract_guard_rejects_email_and_halved_region(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("g", "scripts/guard_contract.py"); g = importlib.util.module_from_spec(spec); spec.loader.exec_module(g)
+    old = "window.GCD_META = {\"updated\":{\"EU\":\"2026-01-01\"}};\nwindow.GCD_TEAMS = [[\"EU\",\"LEC\",\"A\",\"A\",\"\"]];\nwindow.GCD_ROWS = " + str([[0, "p%d" % i, "TOP", "2027-01-01"] for i in range(20)]).replace("'", '"') + ";\n"
+    half = old.replace('"p%d"' % 0, '"p0"')
+    import json
+    rows = json.dumps([[0, "p%d" % i, "TOP", "2027-01-01"] for i in range(8)])
+    new = old.split("window.GCD_ROWS")[0] + "window.GCD_ROWS = " + rows + ";\n"
+    (tmp_path / "o.js").write_text(old); (tmp_path / "n.js").write_text(new); (tmp_path / "m.js").write_text(old + "// a@b.co\n")
+    assert g.main([str(tmp_path / "o.js"), str(tmp_path / "o.js")]) == 0
+    assert g.main([str(tmp_path / "o.js"), str(tmp_path / "n.js")]) == 1        # -60%, stamp did not move
+    assert g.main([str(tmp_path / "o.js"), str(tmp_path / "m.js")]) == 1        # e-mail

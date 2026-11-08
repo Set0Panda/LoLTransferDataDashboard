@@ -7,7 +7,7 @@
   python radar.py search "jungler contract" [--category "Transfers & Rumors"] [--source youtube]
   python radar.py stats
 """
-import argparse, json, sys
+import argparse, json, os, sys
 from pathlib import Path
 from radar import db, pipeline, export
 ROOT = Path(__file__).parent
@@ -17,6 +17,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--only"); r.add_argument("--demo", action="store_true")
+    r.add_argument("--force", action="store_true", help="accept a large drop in published items that the export guard would block")
     r.add_argument("--fast", action="store_true", help="news sources only (Sheep + feeds + Google News); rewrite data.js only when a new item appears")
     s = sub.add_parser("search"); s.add_argument("query"); s.add_argument("--category"); s.add_argument("--source")
     s.add_argument("--limit", type=int, default=15); s.add_argument("--demo", action="store_true")
@@ -34,7 +35,12 @@ def main():
         pipeline.rescore(con, cfg)
         if not a.fast:
             pipeline.prune(con, cfg["max_age_days"])
-        n = export.export(con, ROOT / "docs" / "data.js", only_if_new_ids=a.fast)
+        try:
+            n = export.export(con, ROOT / "docs" / "data.js", only_if_new_ids=a.fast,
+                              force=a.force or os.environ.get("ALLOW_BIG_CHANGE") == "1")
+        except export.ExportBlocked as e:
+            print(f"::warning::GUARD: docs/data.js NOT replaced, last good data stays live. {e}. Re-run with force if this is real.")
+            sys.exit(0)
         print(f"exported {n} items -> docs/data.js" if n else "no new items, data.js untouched")
         if any(v["status"] != "ok" for v in stats.values()):
             sys.exit(0)  # partial failures are logged, never fatal
