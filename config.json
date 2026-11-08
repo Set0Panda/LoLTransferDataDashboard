@@ -1,5 +1,5 @@
 {
-  "_note": "Feeds verified in a real browser on 2026-11-08. Dot Esports, Inven Global and Esports Charts have no working RSS feed (HTML or 404) so they are removed. Sheep Esports has no feed either: see the 'sheep' block, which reads its sitemap.",
+  "_note": "Feeds verified in a real browser on 2026-11-08. Dot Esports, Inven Global and Esports Charts have no working RSS feed (HTML or 404) so they are removed. Sheep Esports has no feed either: see the 'sheep' block, which reads its sitemap and falls back to Google News RSS when Cloudflare blocks the runner.",
   "github": {
     "queries": [
       "topic:league-of-legends esports",
