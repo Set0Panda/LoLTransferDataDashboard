@@ -2,9 +2,11 @@
 import re
 
 CATEGORIES = {   # name -> (weight per hit, patterns)
-    "Transfers & Rumors": (3, r"sources?:|set to (join|leave|sign|replace|remain|continue)|verbal agreement|explore options|transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"),
-    "Contracts & Free Agency": (3, r"contracts?|free[- ]agen(t|cy)|buy-?out|expir(e|es|ing|y)|extension|renew(s|ed|al)?|salary|salaries|clause|rdc|league[- ]recognized|restricted agent|waiv"),
-    "Roster Announcements": (2, r"roster|line-?up|announce[sd]?|welcomes?|farewell|academy (call|promot)|promot(e|ed|es)|starting five|substitute|coach(ing staff)?"),
+    "Transfers & Rumors": (3, r"sources?:|set to (join|leave|sign|replace|remain|continue)|verbal agreement|explore options|transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"
+        r"|이적|영입|합류|결별|방출|은퇴|새 둥지|트레이드|단독|떠난다|잔류|"
+        r"转会|加盟|离队|退役|官宣|消息称|爆料|入队|"),
+    "Contracts & Free Agency": (3, r"contracts?|free[- ]agen(t|cy)|buy-?out|expir(e|es|ing|y)|extension|renew(s|ed|al)?|salary|salaries|clause|rdc|league[- ]recognized|restricted agent|waiv|계약|재계약|자유계약|연장|바이아웃|续约|签约|合同|自由球员"),
+    "Roster Announcements": (2, r"roster|line-?up|announce[sd]?|welcomes?|farewell|academy (call|promot)|promot(e|ed|es)|starting five|substitute|coach(ing staff)?|로스터|엔트리|선수단|감독|코치|阵容|首发|教练|名单"),
     "Analysis & Stats": (2, r"analysis|stats?\b|statistics|win ?rate|breakdown|power rankings?|preview|recap|deep dive|data[- ]driven|metrics?|projection|model"),
     "Tools & Data": (2, r"\bapi\b|wrapper|scrap(er|ing)|dataset|leaguepedia|parser|bot\b|cli\b|library|sdk|open[- ]source|dashboard|tracker|database|pipeline|riot-?api|gol\.gg|oracle'?s elixir"),
     "Tutorials & Guides": (3, r"tutorial|how to|guide|learn(ing)?|walkthrough|course|beginner|step[- ]by[- ]step|explained|101"),
@@ -12,7 +14,7 @@ CATEGORIES = {   # name -> (weight per hit, patterns)
 }
 SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
-LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|esports", re.I)
+LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|esports|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
 LOL_SOURCE = re.compile(r"league|lol|lck|lec|lcs|lpl|sheep|inven|dot ?esports|esports", re.I)
 LEAGUES = {"LCK": r"\blck\b", "LEC": r"\blec\b", "LCS": r"\blcs\b|\blta\b", "LPL": r"\blpl\b",
            "CBLOL": r"cblol", "LJL": r"\bljl\b", "PCS": r"\bpcs\b", "VCS": r"\bvcs\b",
@@ -30,7 +32,7 @@ def classify(item):
             # title hits count double: headlines carry the topic
             n += len(re.findall(pat, item["title"], re.I))
             scores[name] = n * w
-    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"]))
+    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx"))
     topic_hits = sum(1 for k in ("Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements") if k in scores)
     relevance = 0.0
     if ctx:

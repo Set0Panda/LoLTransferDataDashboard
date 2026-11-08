@@ -52,3 +52,13 @@ def test_sheep_parse_and_hint():
     assert sheep.recent_urls(sm, 14) == ["https://www.sheepesports.com/en/articles/x/en"]
     c, tags, rel = classify.classify(item(source_type="newsletter", source_name="Sheep Esports", title="Anything", category_hint="Transfers & Rumors"))
     assert c == "Transfers & Rumors" and rel >= .7
+
+
+def test_cjk_headlines_classify():
+    from radar.classify import classify
+    ko = {"title": "[단독] 한화생명 제우스 재계약 협상 난항", "summary": "", "source_name": "X", "source_type": "newsletter", "lol_ctx": True}
+    zh = {"title": "英雄联盟 LPL官宣：选手转会加盟新战队", "summary": "", "source_name": "X", "source_type": "newsletter"}
+    nba = {"title": "NBA 이적 소식 농구", "summary": "", "source_name": "X", "source_type": "newsletter"}
+    assert classify(ko)[0] == "Transfers & Rumors" and classify(ko)[2] >= 0.3
+    assert classify(zh)[0] == "Transfers & Rumors" and classify(zh)[2] >= 0.3
+    assert classify(nba)[2] < 0.3

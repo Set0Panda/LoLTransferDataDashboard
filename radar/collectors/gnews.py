@@ -14,7 +14,7 @@ URL = "https://news.google.com/rss/search"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; lol-transfer-radar)"}
 
 
-def parse(xml_text, authority, default_auth=0.55):
+def parse(xml_text, authority, default_auth=0.55, lol=False):
     out = []
     for it in ET.fromstring(xml_text).findall(".//item"):
         link = (it.findtext("link") or "").strip()
@@ -38,7 +38,7 @@ def parse(xml_text, authority, default_auth=0.55):
             "source_type": "newsletter", "source_name": publisher, "external_id": link, "title": title,
             "url": link, "author": publisher, "summary": "", "published_at": when,
             "metrics": {"words": 0, "leak": int(sources_scoop)}, "authority": authority.get(publisher, default_auth),
-            "extra": {}, "category_hint": "Transfers & Rumors" if sources_scoop else None,
+            "extra": {}, "category_hint": "Transfers & Rumors" if sources_scoop else None, "lol_ctx": lol,
         })
     return out
 
@@ -49,10 +49,13 @@ def collect(cfg, fixtures=False):
         return []
     seen, out = set(), []
     for q in c.get("queries", []):
+        hl, gl, lol = "en-US", "US", False             # a query can be {"q":..., "hl":"ko", "gl":"KR", "lol":true}
+        if isinstance(q, dict):                        # lol: the query itself guarantees LoL (e.g. contains LCK), so
+            q, hl, gl, lol = q["q"], q.get("hl", hl), q.get("gl", gl), q.get("lol", False)   # CJK headlines need no English keywords
         try:
-            xml = get(URL, params={"q": f"{q} when:{c.get('days', 7)}d", "hl": "en-US", "gl": "US", "ceid": "US:en"},
+            xml = get(URL, params={"q": f"{q} when:{c.get('days', 7)}d", "hl": hl, "gl": gl, "ceid": f"{gl}:{hl.split('-')[0]}"},
                       headers=UA, timeout=30)
-            items = parse(xml, c.get("authority", {}), c.get("default_authority", 0.55))
+            items = parse(xml, c.get("authority", {}), c.get("default_authority", 0.55), lol)
         except Exception as e:
             log(f"  [gnews] {q[:40]}...: {e}")
             continue

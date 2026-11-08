@@ -50,7 +50,25 @@
     "queries": [
       "\"League of Legends\" (transfer OR rumor OR roster OR \"free agent\" OR signs OR joins OR leaves)",
       "(LCK OR LEC OR LCS OR LPL OR CBLOL OR LCP) (roster OR transfer OR contract OR 2027)",
-      "\"LoL esports\" (roster OR contract OR extension OR \"free agency\")"
+      "\"LoL esports\" (roster OR contract OR extension OR \"free agency\")",
+      {
+        "q": "LCK (이적 OR 영입 OR 합류 OR 결별 OR 재계약 OR FA OR 로스터 OR 단독)",
+        "hl": "ko",
+        "gl": "KR",
+        "lol": true
+      },
+      {
+        "q": "롤 프로게이머 (이적 OR FA OR 재계약 OR 로스터) 2027",
+        "hl": "ko",
+        "gl": "KR",
+        "lol": true
+      },
+      {
+        "q": "英雄联盟 LPL (转会 OR 加盟 OR 离队 OR 续约 OR 阵容 OR 官宣)",
+        "hl": "zh-CN",
+        "gl": "CN",
+        "lol": true
+      }
     ],
     "authority": {
       "Sheep Esports": 0.9,
