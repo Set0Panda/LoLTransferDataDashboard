@@ -71,13 +71,3 @@ def test_non_transfer_headline_is_not_a_transfer():
     k = {"title": "[롤드컵] 젠지, 드디어 결승 간다", "summary": "", "source_name": "X", "source_type": "newsletter", "lol_ctx": True}
     assert classify(k)[0] != "Transfers & Rumors"
 
-
-def test_sheep_fetch_uses_proxy_when_configured(monkeypatch):
-    from radar.collectors import sheep
-    seen = {}
-    monkeypatch.setattr(sheep, "get", lambda url, params=None, headers=None, timeout=0: seen.update(url=url, params=params, headers=headers) or "ok")
-    monkeypatch.setenv("SHEEP_PROXY_URL", "https://p.example.workers.dev"); monkeypatch.setenv("SHEEP_PROXY_TOKEN", "tok")
-    assert sheep.fetch("https://www.sheepesports.com/sitemap-articles.xml") == "ok"
-    assert seen["url"] == "https://p.example.workers.dev" and seen["params"] == {"u": "https://www.sheepesports.com/sitemap-articles.xml"} and seen["headers"]["X-Token"] == "tok"
-    monkeypatch.delenv("SHEEP_PROXY_URL")
-    sheep.fetch("https://www.sheepesports.com/x"); assert seen["url"] == "https://www.sheepesports.com/x"

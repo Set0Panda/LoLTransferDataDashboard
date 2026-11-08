@@ -3,21 +3,12 @@ LoL article and take only the metadata (title, short description, publish time, 
 title, a short excerpt, tags and a link back - nothing is copied wholesale and nothing is used for AI training
 (robots.txt: Content-Signal search=yes, ai-train=no, use=reference).
 Polite by design: one sitemap fetch per run, pages only for URLs not stored yet, capped, with a delay."""
-import html as H, os, re, time
+import html as H, re, time
 from datetime import datetime, timedelta, timezone
 from ..http import get
 from .common import clean, log
 
 BASE = "https://www.sheepesports.com"
-
-
-def fetch(url, timeout=25):
-    """Direct when possible; through the Cloudflare Worker (worker/sheep-proxy.js) when SHEEP_PROXY_URL is set,
-    because Sheep's Cloudflare refuses GitHub's runners."""
-    proxy = os.environ.get("SHEEP_PROXY_URL")
-    if proxy:
-        return get(proxy, params={"u": url}, headers={"X-Token": os.environ.get("SHEEP_PROXY_TOKEN", "")}, timeout=timeout)
-    return get(url, timeout=timeout)
 
 
 def _attrs(tag):
@@ -49,7 +40,7 @@ def collect(cfg, fixtures=False):
         return []
     known = cfg.get("_known", set())
     try:
-        sitemap = fetch(BASE + "/sitemap-articles.xml", timeout=40)
+        sitemap = get(BASE + "/sitemap-articles.xml", timeout=40)
     except Exception as e:
         log(f"  [sheep] sitemap blocked ({e}); Sheep headlines still arrive through the gnews collector")
         return []
@@ -59,7 +50,7 @@ def collect(cfg, fixtures=False):
     for u in urls[: c.get("max_pages", 60)]:
         time.sleep(c.get("delay", 0.6))
         try:
-            a = parse_article(fetch(u, timeout=25))
+            a = parse_article(get(u, timeout=25))
         except Exception as e:
             log(f"  [sheep] {u}: {e}")
             continue

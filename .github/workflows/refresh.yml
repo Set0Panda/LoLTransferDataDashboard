@@ -21,8 +21,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          SHEEP_PROXY_URL: ${{ secrets.SHEEP_PROXY_URL }}
-          SHEEP_PROXY_TOKEN: ${{ secrets.SHEEP_PROXY_TOKEN }}
       - run: |
           git config user.name "radar-bot"; git config user.email "radar-bot@users.noreply.github.com"
           git add data/radar.db docs/data.js docs/contract

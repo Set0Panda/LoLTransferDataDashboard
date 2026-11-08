@@ -37,7 +37,7 @@
   ],
   "max_age_days": 120,
   "sheep": {
-    "enabled": true,
+    "enabled": false,
     "days": 14,
     "max_pages": 60,
     "delay": 0.6
