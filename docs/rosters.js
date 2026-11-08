@@ -16,7 +16,7 @@
   const CODE_STOP = new Set(["RED", "LOS", "ES", "JL", "SR", "IJC", "BKR", "FAST8"]);
   const NAME_STOP = new Set(["top","mid","bot","support","jungle","sub","coach","team","gen","new","one","two","the","lol","riot","worlds","msi","lck","lec","lcs","lpl"]);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const norm = s => (s || "").toLowerCase().replace(/ø/g, "o").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const fmtDate = iso => { const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MON[d.getUTCMonth()] + " " + d.getUTCFullYear(); };
 
   // ---- aligned end date: slots count as "projected" if the contract runs past it ----
@@ -113,6 +113,20 @@
   const rank = it => it.quality * Math.pow(.5, (NOW - Date.parse(it.published || it.seen)) / MS / 14);
   const best = arr => arr.slice().sort((a, b) => rank(b) - rank(a));
 
+  // ---- league rankings (docs/standings.js) ----
+  const ST = window.STANDINGS || { leagues: {}, aliases: {} };
+  const rankIdx = {};      // "LCK|normalised sheet name" -> {rank, rec}
+  Object.entries(ST.leagues || {}).forEach(([lg, v]) => {
+    const sheetNames = T.filter(t => t.lg === lg).map(t => t.name);
+    v.teams.forEach((x, i) => {
+      const want = norm((ST.aliases || {})[x.name] || x.name).replace(/\(.*?\)/g, "").replace(/[^a-z0-9]/g, "");
+      const hit = sheetNames.find(n => norm(n).replace(/[^a-z0-9]/g, "") === want)
+        || sheetNames.find(n => { const m = norm(n).replace(/[^a-z0-9]/g, ""); return m.includes(want) || want.includes(m); });
+      if (hit) rankIdx[lg + "|" + norm(hit)] = { rank: i + 1, rec: x.sw + "-" + x.sl };
+    });
+  });
+  const rankOf = t => rankIdx[t.lg + "|" + norm(t.name)];
+
   // ---- view ----
   const S = { lg: null, q: "", only: false };
   const leaguesWithPlayers = [...new Set(T.filter(t => byTeam[t.i].length && t.i === canon[t.i] && t.lg !== "(no league)").map(t => t.reg + "|" + t.lg))]
@@ -127,6 +141,7 @@
   const flag = (arr, label) => arr && arr.length ? `<a class="rflag" href="${esc(best(arr)[0].url)}" target="_blank" rel="noopener" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</a>` : "";
 
   function card(t) {
+    const rk = rankOf(t);
     const base = byTeam[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)] || false);
     const gone = byTeam[t.i].filter(p => leaving[t.i + "|" + norm(p.name)]);
     let projected = 0, hasRumor = false, open = false;
@@ -151,7 +166,7 @@
     const news = best(teamItems[t.i]).slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
     const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
-    return { html: `<article class="rcard"><h3>${logo(t)}<span>${esc(t.name)}</span><small>${esc(t.code || "")}</small></h3>
+    return { html: `<article class="rcard"><h3>${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span>` : ""}${logo(t)}<span>${esc(t.name)}</span><small>${rk ? esc(rk.rec) : esc(t.code || "")}</small></h3>
       <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}${hasRumor ? ' · <span class="tagr">linked in news</span>' : ""}</p>${slots}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
@@ -162,18 +177,20 @@
     const q = norm(S.q).trim();
     const teams = T.filter(t => t.i === canon[t.i] && byTeam[t.i].length && (q ? true : t.reg === reg && t.lg === lg))
       .filter(t => !q || norm(t.name).includes(q) || byTeam[t.i].some(p => norm(p.name).includes(q)))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => { const ra = rankOf(a), rb = rankOf(b); return q ? a.name.localeCompare(b.name) : ((ra ? ra.rank : 999) - (rb ? rb.rank : 999)) || a.name.localeCompare(b.name); });
     let cards = teams.map(card);
     if (S.only) cards = cards.filter(c => c.flagged);
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
     const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Signings and releases since then aren't here unless you add them in <code>roster-overrides.js</code>.</div>` : "";
+    const sv = ST.leagues && ST.leagues[lg];
+    const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.stage)}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
     const sel = REGS.map(g => {
       const ls = leaguesWithPlayers.filter(k => k.startsWith(g + "|")); if (!ls.length) return "";
       return `<div class="row"><span class="rreg">${g}</span>${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;
     }).join("");
     box.innerHTML = `<section class="filters"><div class="row"><input class="search" id="rq" type="search" placeholder="Search a team or player across all leagues…" value="${esc(S.q)}" aria-label="Search rosters">
       <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button></div>${sel}
-      <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${warn}</section>
+      <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}</section>
       <div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>`;
     const rq = document.getElementById("rq");

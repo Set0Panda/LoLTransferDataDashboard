@@ -43,3 +43,6 @@ Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-
 - **Fast job** (`fast.yml`, every 10 min): Sheep + RSS feeds only. Commits only when a new article appears, so the repo doesn't fill with empty commits.
 - **Full job** (`refresh.yml`, every 3 h): everything, including YouTube/GitHub/Reddit, plus score refresh. Both share one concurrency group so they never run at once.
 - **The page** re-reads `data.js` every minute while the tab is open and updates in place; GitHub Pages itself lags about a minute behind each push. Real per-minute freshness would need a small server (e.g. a Cloudflare Worker on a 1-minute cron) instead of Actions.
+
+## League rankings on the roster cards
+`docs/standings.js` orders each league's cards (rank badge + series record). It is **data copied from Leaguepedia's 2026 standings tables, not a live feed**: Leaguepedia's API rate-limits anonymous callers (it refused my queries), and every league lays its season out differently (LCK/LPL use groups, LCS/LEC/CBLOL a table per split, LCP a Swiss stage), so there is no single table to scrape unattended. Covered: LCK, LPL, LEC, LCS, CBLOL, LCP. Others fall back to A-Z. To refresh after a split ends, run `scripts/extract-standings.browser.js` on lol.fandom.com and paste the result in. `aliases` in that file maps Leaguepedia names to the contract sheet's names.
