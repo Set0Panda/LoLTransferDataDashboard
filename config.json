@@ -12,19 +12,6 @@
     "per_query": 20,
     "min_stars": 3
   },
-  "reddit": {
-    "subreddits": [
-      "leagueoflegends",
-      "LeagueOfMemes",
-      "lolesports",
-      "CompetitiveLoL",
-      "LCK",
-      "LoLeventVODs"
-    ],
-    "time_filter": "week",
-    "limit": 40,
-    "min_score": 25
-  },
   "youtube": {
     "queries": [
       "league of legends transfer news",
@@ -47,12 +34,6 @@
       "url": "https://www.dexerto.com/feed/league-of-legends/",
       "authority": 0.65
     }
-  ],
-  "trusted_reddit_flairs": [
-    "Esports",
-    "Transfer",
-    "Rumor",
-    "Roster"
   ],
   "max_age_days": 120,
   "sheep": {

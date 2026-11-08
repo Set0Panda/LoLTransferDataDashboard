@@ -3,10 +3,10 @@ from datetime import datetime, timezone, timedelta
 from . import db
 from .classify import classify
 from .scoring import score
-from .collectors import github, reddit, youtube, rss, sheep
+from .collectors import github, youtube, rss, sheep
 from .collectors.common import log
 
-COLLECTORS = {"github": github, "reddit": reddit, "youtube": youtube, "newsletter": rss, "sheep": sheep}
+COLLECTORS = {"github": github, "youtube": youtube, "newsletter": rss, "sheep": sheep}
 MIN_RELEVANCE = 0.3
 
 
@@ -46,7 +46,7 @@ def collect(con, cfg, only=None, fixtures=False):
 
 def rescore(con, cfg):
     """Quality depends on age, so rescore everything on every run, then rebuild the search index."""
-    flair = set(cfg.get("trusted_reddit_flairs", []))
+    flair = set()
     for r in con.execute("SELECT * FROM items").fetchall():
         m = json.loads(r["metrics"])
         item = {"source_type": r["source_type"], "metrics": m, "relevance": r["relevance"],

@@ -6,7 +6,7 @@ from radar.collectors import rss
 import tests.make_fixtures as mf
 
 def item(**k):
-    d = dict(source_type="reddit", source_name="r/leagueoflegends", title="", summary="", metrics={}); d.update(k); return d
+    d = dict(source_type="newsletter", source_name="Test", title="", summary="", metrics={}); d.update(k); return d
 
 def test_classify():
     c, tags, rel = classify.classify(item(title="[Rumor] Kairo linked to Nova Wolves for LCK 2027, sources say"))

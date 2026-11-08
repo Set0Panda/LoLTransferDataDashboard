@@ -4,7 +4,7 @@ import math, json
 from datetime import datetime, timezone
 
 W = {"engagement": 0.35, "relevance": 0.25, "authority": 0.20, "freshness": 0.20}
-HALF_LIFE = {"newsletter": 7, "reddit": 5, "youtube": 30, "github": 60}   # days
+HALF_LIFE = {"newsletter": 7, "youtube": 30, "github": 60}   # days
 TIERS = [(70, "High"), (45, "Medium"), (0, "Low")]
 
 
@@ -15,9 +15,6 @@ def _log(x, cap):
 def engagement(t, m):
     if t == "github":
         return 0.7 * _log(m.get("stars", 0), 1500) + 0.3 * _log(m.get("forks", 0), 200)
-    if t == "reddit":
-        disc = _log(m.get("comments", 0), 800)
-        return 0.6 * _log(m.get("upvotes", 0), 6000) + 0.3 * disc + 0.1 * max(0, (m.get("upvote_ratio", .5) - .5) * 2)
     if t == "youtube":
         v = max(m.get("views", 0), 1)
         like_rate = min(m.get("likes", 0) / v / 0.05, 1)          # 5% like rate = excellent
@@ -37,8 +34,6 @@ def freshness(t, published, now=None):
 
 def authority(item, flair_trusted):
     a = item.get("authority", 0.5)
-    if item["source_type"] == "reddit" and item.get("flair") in flair_trusted:
-        a = min(1.0, a + 0.25)
     if item["source_type"] == "github":
         a = 0.35 + 0.35 * min(len((item.get("summary") or "")) / 120, 1) + (0.15 if item.get("language") else 0)
     return a

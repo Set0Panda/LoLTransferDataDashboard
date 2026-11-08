@@ -10,8 +10,7 @@ CATEGORIES = {   # name -> (weight per hit, patterns)
     "Tutorials & Guides": (3, r"tutorial|how to|guide|learn(ing)?|walkthrough|course|beginner|step[- ]by[- ]step|explained|101"),
     "Community Discussion": (2, r"discussion|thread|opinion|unpopular|what do you think|ama\b|megathread|hot take|\bpoll\b"),
 }
-SOURCE_DEFAULT = {"github": "Tools & Data", "reddit": "Community Discussion",
-                  "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
+SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
 LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|esports", re.I)
 LOL_SOURCE = re.compile(r"league|lol|lck|lec|lcs|lpl|sheep|inven|dot ?esports|esports", re.I)

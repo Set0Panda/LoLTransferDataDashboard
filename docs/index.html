@@ -10,7 +10,7 @@
     --bg:#f4f4f1; --surface:#fcfcfb; --line:#e2e1dc; --grid:#ecebe7;
     --ink:#0b0b0b; --ink2:#52514e; --ink3:#8a8984;
     --accent:#2a78d6; --chip:#efeeea; --chip-on:#0b0b0b; --chip-on-ink:#fcfcfb;
-    --github:#2a78d6; --reddit:#eb6834; --youtube:#1baf7a; --newsletter:#eda100;
+    --github:#2a78d6; --youtube:#1baf7a; --newsletter:#eda100;
     --t-low:#86b6ef; --t-med:#2a78d6; --t-high:#104281;
     --seq:#2a78d6; --warn:#a15c00; --ok:#1a7f4b;
   }
@@ -19,7 +19,7 @@
     --bg:#121211; --surface:#1a1a19; --line:#2c2c2a; --grid:#262624;
     --ink:#f0efec; --ink2:#c3c2b7; --ink3:#8d8c85;
     --accent:#3987e5; --chip:#252523; --chip-on:#f0efec; --chip-on-ink:#1a1a19;
-    --github:#3987e5; --reddit:#d95926; --youtube:#199e70; --newsletter:#c98500;
+    --github:#3987e5; --youtube:#199e70; --newsletter:#c98500;
     --t-low:#184f95; --t-med:#3987e5; --t-high:#9ec5f4;
     --seq:#3987e5; --warn:#e0a040; --ok:#3fb97a;
   }
@@ -29,7 +29,7 @@
       --bg:#121211; --surface:#1a1a19; --line:#2c2c2a; --grid:#262624;
       --ink:#f0efec; --ink2:#c3c2b7; --ink3:#8d8c85;
       --accent:#3987e5; --chip:#252523; --chip-on:#f0efec; --chip-on-ink:#1a1a19;
-      --github:#3987e5; --reddit:#d95926; --youtube:#199e70; --newsletter:#c98500;
+      --github:#3987e5; --youtube:#199e70; --newsletter:#c98500;
       --t-low:#184f95; --t-med:#3987e5; --t-high:#9ec5f4;
       --seq:#3987e5; --warn:#e0a040; --ok:#3fb97a;
     }
@@ -193,7 +193,7 @@
 <script src="data.js"></script>
 <script>
 let D = window.RADAR || {meta:{sources:[]}, items:[]};
-const TYPES = [["github","GitHub"],["reddit","Reddit"],["youtube","YouTube"],["newsletter","Newsletters"]];
+const TYPES = [["github","GitHub"],["youtube","YouTube"],["newsletter","Newsletters"]];
 const TNAME = Object.fromEntries(TYPES), TIERS = ["Low","Medium","High"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const $ = id => document.getElementById(id);
@@ -218,7 +218,7 @@ function filtered(skip) {
     (skip==="src" || !S.srcs.size || S.srcs.has(i.type)) &&
     words.every(w => i.hay.includes(w)));
 }
-const engage = i => i.type==="github" ? (i.metrics.stars||0) : i.type==="reddit" ? (i.metrics.upvotes||0)+2*(i.metrics.comments||0) : i.type==="youtube" ? (i.metrics.views||0) : (i.metrics.words||0);
+const engage = i => i.type==="github" ? (i.metrics.stars||0) : i.type==="youtube" ? (i.metrics.views||0) : (i.metrics.words||0);
 
 /* ---------- widgets ---------- */
 function barRow(label, color, frac, value, extra="", attrs="") {
@@ -303,7 +303,7 @@ function renderQuality(items) {
 function renderTime(items) {
   const days = Math.min(S.range===9999 ? 60 : S.range, 60), el = $("time");
   const W = el.clientWidth || 440, H = 190, m = {l:26,r:4,t:8,b:20}, iw = W-m.l-m.r, ih = H-m.t-m.b;
-  const b = Array.from({length:days},()=>({github:0,reddit:0,youtube:0,newsletter:0,tot:0}));
+  const b = Array.from({length:days},()=>({github:0,youtube:0,newsletter:0,tot:0}));
   const today = new Date(); today.setHours(23,59,59,999);
   items.forEach(i => { const d = Math.floor((today.getTime()-i.t)/DAY); if (d>=0 && d<days) { b[days-1-d][i.type]++; b[days-1-d].tot++; } });
   const max = Math.max(1,...b.map(x=>x.tot)), bw = iw/days, gap = Math.min(2, bw*.25);
@@ -324,7 +324,6 @@ function ago(t) { const d=(NOW-t)/36e5; return d<1?"just now":d<24?Math.round(d)
 function metricStr(i) {
   const m = i.metrics;
   if (i.type==="github") return `${fmt(m.stars||0)} stars${m.stars_7d!=null?` (${m.stars_7d>=0?"+":""}${m.stars_7d} this week)`:""} · ${fmt(m.forks||0)} forks`;
-  if (i.type==="reddit") return `${fmt(m.upvotes||0)} upvotes · ${fmt(m.comments||0)} comments`;
   if (i.type==="youtube") return `${fmt(m.views||0)} views · ${fmt(m.likes||0)} likes`;
   return `~${fmt(m.words||0)} words`;
 }

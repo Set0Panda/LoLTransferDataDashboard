@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """LoL Transfer Radar CLI.
   python radar.py run                 collect all sources, score, export dashboard data
-  python radar.py run --only github,reddit
+  python radar.py run --only github,youtube
   python radar.py run --fast          news sources only, writes data.js only if something is new
   python radar.py run --demo          offline run on synthetic fixtures (separate demo DB)
-  python radar.py search "jungler contract" [--category "Transfers & Rumors"] [--source reddit]
+  python radar.py search "jungler contract" [--category "Transfers & Rumors"] [--source youtube]
   python radar.py stats
 """
 import argparse, json, sys
