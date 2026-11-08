@@ -59,4 +59,4 @@ A bad fetch should never replace good data.
 - **Feed export** (`radar/export.py`): if any source type (with 20+ published items) loses more than half of them in one run, `docs/data.js` is not rewritten.
 - Both can be overridden on purpose: run the *Refresh radar (full)* workflow manually and tick **force** (or pass `--force` locally).
 
-The **Contract Radar** tab embeds the live site.
+The **Contract Radar** tab is a native view of the same snapshot (`docs/contract.js`): Expiry radar, Market board, What changed (from `history.js`), Data health. The region cards filter all four. Rosters is the first tab.

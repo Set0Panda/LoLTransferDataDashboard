@@ -21,7 +21,7 @@ jobs:
         env:
           ALLOW_BIG_CHANGE: ${{ inputs.force && '1' || '0' }}
         run: |
-          for f in data.js logos.js roles-kr.js regions.js; do
+          for f in data.js history.js logos.js roles-kr.js regions.js; do
             curl -fsSL "https://set0panda.github.io/contract-radar/$f" -o "docs/contract/$f.new" || { rm -f "docs/contract/$f.new"; echo "::warning::fetch failed for $f, keeping existing"; continue; }
             if [ "$f" = data.js ]; then
               rc=0; python scripts/guard_contract.py "docs/contract/$f" "docs/contract/$f.new" > /tmp/guard.txt || rc=$?
