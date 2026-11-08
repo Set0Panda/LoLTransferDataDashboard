@@ -62,3 +62,11 @@ def test_cjk_headlines_classify():
     assert classify(ko)[0] == "Transfers & Rumors" and classify(ko)[2] >= 0.3
     assert classify(zh)[0] == "Transfers & Rumors" and classify(zh)[2] >= 0.3
     assert classify(nba)[2] < 0.3
+
+
+def test_non_transfer_headline_is_not_a_transfer():
+    from radar.classify import classify
+    d = {"title": "Worlds 2026 final preview: Gen.G vs T1", "summary": "", "source_name": "X", "source_type": "newsletter"}
+    assert classify(d)[0] != "Transfers & Rumors"
+    k = {"title": "[롤드컵] 젠지, 드디어 결승 간다", "summary": "", "source_name": "X", "source_type": "newsletter", "lol_ctx": True}
+    assert classify(k)[0] != "Transfers & Rumors"

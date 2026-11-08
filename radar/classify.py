@@ -4,7 +4,7 @@ import re
 CATEGORIES = {   # name -> (weight per hit, patterns)
     "Transfers & Rumors": (3, r"sources?:|set to (join|leave|sign|replace|remain|continue)|verbal agreement|explore options|transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"
         r"|이적|영입|합류|결별|방출|은퇴|새 둥지|트레이드|단독|떠난다|잔류|"
-        r"转会|加盟|离队|退役|官宣|消息称|爆料|入队|"),
+        r"转会|加盟|离队|退役|官宣|消息称|爆料|入队"),
     "Contracts & Free Agency": (3, r"contracts?|free[- ]agen(t|cy)|buy-?out|expir(e|es|ing|y)|extension|renew(s|ed|al)?|salary|salaries|clause|rdc|league[- ]recognized|restricted agent|waiv|계약|재계약|자유계약|연장|바이아웃|续约|签约|合同|自由球员"),
     "Roster Announcements": (2, r"roster|line-?up|announce[sd]?|welcomes?|farewell|academy (call|promot)|promot(e|ed|es)|starting five|substitute|coach(ing staff)?|로스터|엔트리|선수단|감독|코치|阵容|首发|教练|名单"),
     "Analysis & Stats": (2, r"analysis|stats?\b|statistics|win ?rate|breakdown|power rankings?|preview|recap|deep dive|data[- ]driven|metrics?|projection|model"),
