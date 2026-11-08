@@ -274,7 +274,7 @@
     PARTS[t.i] = { cells, bar, rumOther, hasRumor, slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
         return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${rumOtherHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${rumOtherHtml}${subHtml}${leftHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
