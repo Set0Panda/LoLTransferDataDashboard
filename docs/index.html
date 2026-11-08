@@ -112,9 +112,11 @@
   .rchip:hover { border-color:var(--ink3); } .rchip b { font-size:11px; color:var(--ink2); } .rchip span { font-size:11px; font-weight:700; }
   .rchip .rlogo { width:38px; height:38px; }
   .rchip.t-g { border-bottom:3px solid var(--ok); } .rchip.t-a { border-bottom:3px solid var(--warn); } .rchip.t-r { border-bottom:3px solid var(--ink3); }
-  :root[data-theme="dark"] img.rlogo, :root[data-theme="dark"] .rreglogo { background:rgba(255,255,255,.92); border-radius:10px; padding:4px; box-sizing:border-box; }
-  :root[data-theme="dark"] .rreglogo { padding:3px; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) img.rlogo, :root:not([data-theme="light"]) .rreglogo { background:rgba(255,255,255,.92); border-radius:10px; padding:4px; box-sizing:border-box; } }
+  /* dark crests stay readable with a hairline light halo instead of a plate */
+  :root[data-theme="dark"] .rhead .rlogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.7)) drop-shadow(0 2px 6px color-mix(in srgb,var(--ac) 45%,transparent)); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rhead .rlogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.7)) drop-shadow(0 2px 6px color-mix(in srgb,var(--ac) 45%,transparent)); } }
+  :root[data-theme="dark"] .rchip .rlogo, :root[data-theme="dark"] .rreglogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.55)); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rchip .rlogo, :root:not([data-theme="light"]) .rreglogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.55)); } }
   .rreg { min-width:44px; display:inline-flex; align-items:center; }
   .rreglogo { height:30px; min-width:30px; width:auto; max-width:56px; object-fit:contain; }
 
@@ -128,8 +130,10 @@
   .rl { font-size:11px; letter-spacing:.06em; color:var(--ink3); }
   .rrow .pl { font-weight:600; }
   .rrow .ok { color:var(--ok); } .rrow .open { color:var(--warn); font-weight:600; } .rrow .ex { color:var(--ink2); font-size:12px; }
-  .rflag { font-size:11px; margin-left:6px; padding:0 6px; border-radius:6px; background:color-mix(in srgb, var(--warn) 18%, var(--surface)); color:var(--ink); text-decoration:none; border:1px solid color-mix(in srgb, var(--warn) 40%, var(--line)); }
-  .tagc, .tagr { font-size:10px; letter-spacing:.05em; font-weight:700; padding:1px 6px; border-radius:5px; }
+  .pn { white-space:nowrap; }
+  .rlinked { margin:-4px 0 8px; }
+  .rflag { white-space:nowrap; font-size:11px; margin-left:6px; padding:0 6px; border-radius:6px; background:color-mix(in srgb, var(--warn) 18%, var(--surface)); color:var(--ink); text-decoration:none; border:1px solid color-mix(in srgb, var(--warn) 40%, var(--line)); }
+  .tagc, .tagr { white-space:nowrap; font-size:10px; letter-spacing:.05em; font-weight:700; padding:1px 6px; border-radius:5px; }
   .tagc { background:color-mix(in srgb, var(--ok) 20%, var(--surface)); color:var(--ok); }
   .tagr { background:color-mix(in srgb, var(--warn) 20%, var(--surface)); color:var(--warn); }
   .rnewswrap { border-top:1px solid var(--line); padding-top:6px; margin-top:4px; }

@@ -163,7 +163,7 @@
     const base = byTeam[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)] || false);
     const gone = byTeam[t.i].concat(coaches[t.i]).filter(p => leaving[t.i + "|" + norm(p.name)]);
     let projected = 0, hasRumor = false, open = false;
-    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions")}`; };
+    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pn"><span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions")}</span>`; };
     const sts = [];
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
@@ -197,7 +197,7 @@
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
     const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
     return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}${hasRumor ? ' · <span class="tagr">linked in news</span>' : ""}</p>${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? '<div class="rlinked"><span class="tagr">LINKED IN NEWS</span></div>' : ""}${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
