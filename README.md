@@ -38,3 +38,8 @@ Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-
 - The sheet lags reality. Put confirmed or rumoured moves in `docs/roster-overrides.js` (format in the file); confirmed ones move the player between cards.
 - `docs/contract/` is a copy of Contract Radar's `data.js`, `logos.js` and `roles-kr.js`, refreshed by the daily Action (it keeps the committed copy if the fetch fails). The aligned-date calendar in `docs/rosters.js` mirrors Contract Radar's; update both together each year.
 - `docs/common-words.js` is a generated English word list (wordfreq, top ~5.7k) used for the handle filter.
+
+## Update cadence
+- **Fast job** (`fast.yml`, every 10 min): Sheep + RSS feeds only. Commits only when a new article appears, so the repo doesn't fill with empty commits.
+- **Full job** (`refresh.yml`, every 3 h): everything, including YouTube/GitHub/Reddit, plus score refresh. Both share one concurrency group so they never run at once.
+- **The page** re-reads `data.js` every minute while the tab is open and updates in place; GitHub Pages itself lags about a minute behind each push. Real per-minute freshness would need a small server (e.g. a Cloudflare Worker on a 1-minute cron) instead of Actions.

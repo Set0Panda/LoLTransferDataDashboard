@@ -42,6 +42,8 @@
   h1 { font-size:20px; margin:0; letter-spacing:-.01em; }
   .sub { color:var(--ink2); font-size:13px; }
   .grow { flex:1; }
+  .live { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ok); margin-right:4px; animation:pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity:.3; } }
   button, input, select { font:inherit; color:inherit; }
   .btn { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:5px 10px; cursor:pointer; }
   .banner { background:color-mix(in srgb, var(--warn) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
@@ -165,7 +167,7 @@
 <div id="tip"></div>
 <script src="data.js"></script>
 <script>
-const D = window.RADAR || {meta:{sources:[]}, items:[]};
+let D = window.RADAR || {meta:{sources:[]}, items:[]};
 const TYPES = [["github","GitHub"],["reddit","Reddit"],["youtube","YouTube"],["newsletter","Newsletters"]];
 const TNAME = Object.fromEntries(TYPES), TIERS = ["Low","Medium","High"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -173,10 +175,11 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3)+"k" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(Math.round(n));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
-const NOW = Date.now(), DAY = 864e5;
-D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.hay = norm([i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); });
+let NOW = Date.now(); const DAY = 864e5;
+function prep() { D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.hay = norm([i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); }); }
+prep();
 
-const CATS = new Set(D.items.map(i=>i.category));
+let CATS = new Set(D.items.map(i=>i.category));
 const S = {q:"", range:30, tier:"", sort:"new", cats:new Set(), srcs:new Set(), shown:30};
 
 /* ---------- filtering ---------- */
@@ -345,7 +348,29 @@ document.addEventListener("mousemove", e => {
 addEventListener("resize", () => renderTime(filtered()));
 
 $("demo").hidden = !D.meta.demo;
-$("gen").textContent = D.meta.generated ? "Updated " + new Date(D.meta.generated).toLocaleString() : "No data yet - run python radar.py run";
+function genLabel() {
+  if (!D.meta.generated) { $("gen").textContent = "No data yet - run python radar.py run"; return; }
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(D.meta.generated)) / 6e4));
+  $("gen").innerHTML = `<span class="live" title="This page checks for new data every minute"></span> Updated ${m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago"}`;
+}
+genLabel(); setInterval(genLabel, 30000);
+/* ---------- live refresh: re-read data.js every minute while the tab is visible ---------- */
+function poll() {
+  if (document.visibilityState !== "visible") return;
+  const prev = D.meta.generated, sc = document.createElement("script");
+  sc.src = "data.js?ts=" + Date.now();
+  sc.onload = () => {
+    sc.remove();
+    const nd = window.RADAR;
+    if (!nd || !nd.meta || nd.meta.generated === prev) return;
+    D = nd; prep(); CATS = new Set(D.items.map(i => i.category)); NOW = Date.now(); genLabel(); render();
+    if (window.Rosters) Rosters.rebuild();
+  };
+  sc.onerror = () => sc.remove();
+  document.head.appendChild(sc);
+}
+setInterval(poll, 60000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poll(); });
 render();
 
 /* ---------- tabs ---------- */

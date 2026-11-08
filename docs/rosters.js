@@ -5,7 +5,7 @@
   if (!box) return;
   if (!window.GCD_TEAMS || !window.GCD_ROWS) { box.innerHTML = '<div class="card empty">Contract data not found (docs/contract/data.js).</div>'; return; }
 
-  const MS = 864e5, NOW = Date.now();
+  const MS = 864e5; let NOW = Date.now();
   const STARTERS = ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"];
   const REGS = ["AME", "CN", "EMEA", "KR", "LCP"];
   const ALIGNED = ["2026-11-16", "2027-11-15", "2028-11-20", "2029-11-19", "2030-11-18"];   // same calendar as Contract Radar
@@ -63,7 +63,6 @@
   });
 
   // ---- mentions from the transfer feed ----
-  const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo));
   const COMMON = new Set((window.COMMON_WORDS || []).concat(["hype", "potential", "leave", "time", "life"]));   // handles that are also everyday words
   const handleIdx = new Map();      // lowercased handle -> [{ti, p}]
   T.forEach(t => byTeam[t.i].forEach(p => {
@@ -77,7 +76,11 @@
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
   });
-  const playerItems = new Map(), teamItems = T.map(() => []);
+  let playerItems = new Map(), teamItems = T.map(() => []);
+  function buildMentions() {
+    NOW = Date.now();
+  const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo));
+    playerItems = new Map(); teamItems = T.map(() => []);
   items.forEach(it => {
     if (NOW - Date.parse(it.published || it.seen) > 45 * MS) return;
     const text = it.title + " " + (it.summary || "").slice(0, 300);
@@ -105,6 +108,8 @@
     });
     if (hitPlayers.length) hitTeams.forEach(ti => { if (!teamItems[ti].includes(it)) teamItems[ti].push(it); });
   });
+  }
+  buildMentions();
   const rank = it => it.quality * Math.pow(.5, (NOW - Date.parse(it.published || it.seen)) / MS / 14);
   const best = arr => arr.slice().sort((a, b) => rank(b) - rank(a));
 
@@ -176,6 +181,6 @@
     document.getElementById("ronly").onclick = () => { S.only = !S.only; render(); };
     box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; render(); });
   }
-  window.Rosters = { render };
+  window.Rosters = { render, rebuild() { buildMentions(); render(); } };
   render();
 })();

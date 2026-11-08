@@ -13,7 +13,15 @@ def star_delta(con, iid, days=7):
     return int(new[0] - old[0]) if old and new else None
 
 
-def export(con, out_path, max_items=4000):
+def _existing_ids(path):
+    try:
+        txt = open(path, encoding='utf-8').read()
+        return {i['id'] for i in json.loads(txt[len('window.RADAR = '):txt.rindex(';')])['items']}
+    except Exception:
+        return None
+
+
+def export(con, out_path, max_items=4000, only_if_new_ids=False):
     rows = con.execute("""SELECT * FROM items ORDER BY COALESCE(published_at, first_seen_at) DESC LIMIT ?""",
                        (max_items,)).fetchall()
     items = []
@@ -30,6 +38,8 @@ def export(con, out_path, max_items=4000):
                       "metrics": pub, "category": r["category"], "tags": json.loads(r["tags"]),
                       "quality": r["quality"], "tier": r["quality_tier"],
                       "breakdown": json.loads(r["quality_breakdown"]), "relevance": r["relevance"]})
+    if only_if_new_ids and _existing_ids(out_path) == {i['id'] for i in items}:
+        return 0          # nothing new: leave the file alone so the fast job makes no commit
     srcs = [dict(s) for s in con.execute("SELECT type,name,last_run,last_status,authority FROM sources")]
     meta = {"generated": db.now(), "demo": con.execute("SELECT value FROM meta WHERE key='demo'").fetchone() is not None,
             "sources": srcs}

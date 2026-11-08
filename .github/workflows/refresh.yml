@@ -1,8 +1,10 @@
-name: Refresh radar
+name: Refresh radar (full)
 on:
-  schedule: [{cron: "17 5 * * *"}]   # daily
+  schedule: [{cron: "7 */3 * * *"}]   # every 3 hours: YouTube search costs ~500 quota units a run (free limit 10,000/day)
+
   workflow_dispatch:
 permissions: {contents: write}
+concurrency: {group: radar-refresh, cancel-in-progress: false}
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -24,4 +26,4 @@ jobs:
       - run: |
           git config user.name "radar-bot"; git config user.email "radar-bot@users.noreply.github.com"
           git add data/radar.db docs/data.js docs/contract
-          git diff --cached --quiet || (git commit -m "Refresh data" && git push)
+          git diff --cached --quiet || (git commit -m "Refresh data" && git pull --rebase -X theirs origin main && git push)

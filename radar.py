@@ -2,6 +2,7 @@
 """LoL Transfer Radar CLI.
   python radar.py run                 collect all sources, score, export dashboard data
   python radar.py run --only github,reddit
+  python radar.py run --fast          news sources only, writes data.js only if something is new
   python radar.py run --demo          offline run on synthetic fixtures (separate demo DB)
   python radar.py search "jungler contract" [--category "Transfers & Rumors"] [--source reddit]
   python radar.py stats
@@ -16,6 +17,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--only"); r.add_argument("--demo", action="store_true")
+    r.add_argument("--fast", action="store_true", help="news sources only (Sheep + feeds); rewrite data.js only when a new item appears")
     s = sub.add_parser("search"); s.add_argument("query"); s.add_argument("--category"); s.add_argument("--source")
     s.add_argument("--limit", type=int, default=15); s.add_argument("--demo", action="store_true")
     t = sub.add_parser("stats"); t.add_argument("--demo", action="store_true")
@@ -27,11 +29,13 @@ def main():
         if a.demo:
             import tests.make_fixtures as mf; mf.main()
             con.execute("INSERT OR REPLACE INTO meta VALUES('demo','1')")
-        stats = pipeline.collect(con, cfg, set(a.only.split(",")) if a.only else None, fixtures=a.demo)
+        only = set(a.only.split(",")) if a.only else ({"newsletter", "sheep"} if a.fast else None)
+        stats = pipeline.collect(con, cfg, only, fixtures=a.demo)
         pipeline.rescore(con, cfg)
-        pipeline.prune(con, cfg["max_age_days"])
-        n = export.export(con, ROOT / "docs" / "data.js")
-        print(f"exported {n} items -> docs/data.js")
+        if not a.fast:
+            pipeline.prune(con, cfg["max_age_days"])
+        n = export.export(con, ROOT / "docs" / "data.js", only_if_new_ids=a.fast)
+        print(f"exported {n} items -> docs/data.js" if n else "no new items, data.js untouched")
         if any(v["status"] != "ok" for v in stats.values()):
             sys.exit(0)  # partial failures are logged, never fatal
     elif a.cmd == "search":
