@@ -68,7 +68,9 @@
         "hl": "zh-CN",
         "gl": "CN",
         "lol": true
-      }
+      },
+      "site:sheepesports.com \"Sources:\"",
+      "site:sheepesports.com (LEC OR LCK OR LPL OR LCS OR CBLOL OR LCP)"
     ],
     "authority": {
       "Sheep Esports": 0.9,

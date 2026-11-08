@@ -17,6 +17,13 @@ Pure Python 3.10+ standard library; pytest only for the tests.
 | `GITHUB_TOKEN` | GitHub | raises search rate limit (auto-provided in Actions) |
 | `YOUTUBE_API_KEY` | YouTube | required; free quota 10k units/day, each query costs ~100 |
 
+## Sheep Esports through a Cloudflare Worker (optional, recommended)
+Sheep's Cloudflare blocks GitHub's servers, so by default Sheep only arrives as Google News headlines (partial, delayed). To read Sheep directly, deploy `worker/sheep-proxy.js` as a free Cloudflare Worker and add two repo secrets:
+1. Cloudflare dashboard -> Workers & Pages -> Create -> Hello World -> Deploy, then Edit code, paste `worker/sheep-proxy.js`, Deploy.
+2. Worker -> Settings -> Variables and Secrets -> add a **Secret** named `TOKEN` (any long random string).
+3. GitHub repo secrets: `SHEEP_PROXY_URL` = the worker URL (`https://<name>.<you>.workers.dev`), `SHEEP_PROXY_TOKEN` = the same string.
+The Worker only fetches `www.sheepesports.com` and refuses requests without the token. Without the secrets the collector tries Sheep directly, logs the 403 and carries on.
+
 ## How it works
 - `config.json`: GitHub queries, YouTube queries, newsletter feed URLs. Verified feeds: Esports Insider, Dexerto (LoL). Google News RSS (`radar/collectors/gnews.py`, queries in `config.json -> gnews`) pulls headlines from publications that block CI directly (Dot Esports, EGamersWorld, Insider Gaming, Hotspawn...); each publisher shows up as its own source, headline-only. Sheep Esports has no RSS, so `radar/collectors/sheep.py` reads its public sitemap and each new article's metadata (title, short description, tags; the `LEAK` tag marks scoops). Dot Esports and Inven Global have no working feed.
 - `radar/classify.py`: keyword categories (editable), league/role tags, relevance 0-1. Items below 0.3 relevance are dropped.
