@@ -30,3 +30,11 @@ Pure Python 3.10+ standard library; pytest only for the tests.
 - Newsletters expose no engagement numbers, so their score leans on authority, depth and freshness.
 - Email-only newsletters need an RSS bridge (Substack/Ghost/Beehiiv have feeds; others via kill-the-newsletter.com).
 - Categorisation is keyword-based: expect misses on slang and non-English titles. Tune the regexes after your first real run.
+
+## Provisional rosters (tab on the site)
+Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-radar/)'s contract sheet, with logos.
+- A starting slot is *projected* when the sheet shows a contract ending after the next aligned end date; otherwise it shows *Open* plus who is expiring.
+- Headlines from the feed that name a player show as a "mentions" tag on the slot, and team-level news is listed on the card. Handles that are also everyday words ("Life", "Time") only count when their team is named too.
+- The sheet lags reality. Put confirmed or rumoured moves in `docs/roster-overrides.js` (format in the file); confirmed ones move the player between cards.
+- `docs/contract/` is a copy of Contract Radar's `data.js`, `logos.js` and `roles-kr.js`, refreshed by the daily Action (it keeps the committed copy if the fetch fails). The aligned-date calendar in `docs/rosters.js` mirrors Contract Radar's; update both together each year.
+- `docs/common-words.js` is a generated English word list (wordfreq, top ~5.7k) used for the handle filter.

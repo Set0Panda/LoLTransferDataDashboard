@@ -10,6 +10,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with: {python-version: "3.12"}
+      - name: Sync contract data from Contract Radar (keeps the committed copy if the fetch fails)
+        run: |
+          for f in data.js logos.js roles-kr.js; do
+            curl -fsSL "https://set0panda.github.io/contract-radar/$f" -o "docs/contract/$f.new" && mv "docs/contract/$f.new" "docs/contract/$f" || { rm -f "docs/contract/$f.new"; echo "keeping existing $f"; }
+          done
       - run: python radar.py run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -18,5 +23,5 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
       - run: |
           git config user.name "radar-bot"; git config user.email "radar-bot@users.noreply.github.com"
-          git add data/radar.db docs/data.js
+          git add data/radar.db docs/data.js docs/contract
           git diff --cached --quiet || (git commit -m "Refresh data" && git push)
