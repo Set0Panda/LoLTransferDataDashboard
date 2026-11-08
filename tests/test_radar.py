@@ -71,3 +71,15 @@ def test_non_transfer_headline_is_not_a_transfer():
     k = {"title": "[롤드컵] 젠지, 드디어 결승 간다", "summary": "", "source_name": "X", "source_type": "newsletter", "lol_ctx": True}
     assert classify(k)[0] != "Transfers & Rumors"
 
+
+
+def test_noise_is_dropped_and_real_moves_kept():
+    from radar.classify import classify
+    mk = lambda t: {"title": t, "summary": "", "source_name": "Sheep Esports", "source_type": "newsletter"}
+    for junk in ["Gen.G vs Invictus Gaming odds & picks - Lol Worlds 2026", "Cloud9 vs Team Liquid 1\u20133 | LCS 2026",
+                 "Boaster Parts Ways With Fnatic After Nearly Six Years in VALORANT", "LoL patch 25.15 notes deliver champion nerfs",
+                 "Gen.G sweep IG and become the first finalists of Worlds 2026"]:
+        assert classify(mk(junk))[2] < 0.3, junk
+    for real in ["Sources: Zicssi set to join SK Gaming for the 2027 LEC season", "Perkz Dismissed by G2 Esports Over Controversial Comments",
+                 "Team Vitality Target SK Standout Jopa as LEC Botlane Market Freezes", "G2 Esports Begin LEC Rebuild as SkewMond Exits Starting Roster"]:
+        assert classify(mk(real))[2] >= 0.3, real

@@ -57,9 +57,12 @@ def rescore(con, cfg):
         con.execute("UPDATE items SET quality=?, quality_tier=?, quality_breakdown=? WHERE id=?",
                     (q, tier, json.dumps(parts), r["id"]))
         if r["source_type"] != "github":       # keep categories in step with the current keyword rules
-            cat, tags, _ = classify({"title": r["title"], "summary": r["summary"], "source_type": r["source_type"],
+            cat, tags, rel = classify({"title": r["title"], "summary": r["summary"], "source_type": r["source_type"],
                                      "source_name": r["source_name"], "lol_ctx": True,
                                      "category_hint": "Transfers & Rumors" if m.get("leak") else None})
+            if r["source_type"] == "newsletter" and rel < MIN_RELEVANCE:   # tightened rules: retire what no longer qualifies
+                con.execute("DELETE FROM items WHERE id=?", (r["id"],))
+                continue
             con.execute("UPDATE items SET category=?, tags=? WHERE id=?", (cat, json.dumps(tags), r["id"]))
     con.execute("DELETE FROM items_fts")
     con.execute("""INSERT INTO items_fts(rowid,title,summary,tags,source_name)
