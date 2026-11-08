@@ -1,0 +1,35 @@
+{
+  "_note": "Edit freely. Feeds marked unverified were not reachable from the build sandbox - the collector logs a warning per failing feed and carries on.",
+  "github": {
+    "queries": [
+      "topic:league-of-legends esports",
+      "league of legends transfers",
+      "lol esports roster",
+      "leaguepedia",
+      "riot games api esports",
+      "lol esports data"
+    ],
+    "per_query": 20,
+    "min_stars": 3
+  },
+  "reddit": {
+    "subreddits": ["leagueoflegends", "LeagueOfMemes", "lolesports", "CompetitiveLoL", "LCK", "LoLeventVODs"],
+    "time_filter": "week",
+    "limit": 40,
+    "min_score": 25
+  },
+  "youtube": {
+    "queries": ["league of legends transfer news", "lol roster changes", "lol esports analysis tutorial", "lol esports data analysis", "league of legends free agency"],
+    "per_query": 15,
+    "published_after_days": 60
+  },
+  "newsletters": [
+    {"name": "Sheep Esports", "url": "https://sheepesports.com/feed", "authority": 0.9},
+    {"name": "Dot Esports - LoL", "url": "https://dotesports.com/league-of-legends/feed", "authority": 0.75},
+    {"name": "Inven Global", "url": "https://www.invenglobal.com/rss/lol", "authority": 0.8},
+    {"name": "Esports Insider", "url": "https://esportsinsider.com/feed", "authority": 0.7},
+    {"name": "Esports Charts", "url": "https://escharts.com/feed", "authority": 0.7}
+  ],
+  "trusted_reddit_flairs": ["Esports", "Transfer", "Rumor", "Roster"],
+  "max_age_days": 120
+}

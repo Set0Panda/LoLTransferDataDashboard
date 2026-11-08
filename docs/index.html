@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoL Transfer Radar</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg:#f4f4f1; --surface:#fcfcfb; --line:#e2e1dc; --grid:#ecebe7;
+    --ink:#0b0b0b; --ink2:#52514e; --ink3:#8a8984;
+    --accent:#2a78d6; --chip:#efeeea; --chip-on:#0b0b0b; --chip-on-ink:#fcfcfb;
+    --github:#2a78d6; --reddit:#eb6834; --youtube:#1baf7a; --newsletter:#eda100;
+    --t-low:#86b6ef; --t-med:#2a78d6; --t-high:#104281;
+    --seq:#2a78d6; --warn:#a15c00;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --line:#2c2c2a; --grid:#262624;
+    --ink:#f0efec; --ink2:#c3c2b7; --ink3:#8d8c85;
+    --accent:#3987e5; --chip:#252523; --chip-on:#f0efec; --chip-on-ink:#1a1a19;
+    --github:#3987e5; --reddit:#d95926; --youtube:#199e70; --newsletter:#c98500;
+    --t-low:#184f95; --t-med:#3987e5; --t-high:#9ec5f4;
+    --seq:#3987e5; --warn:#e0a040;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:#121211; --surface:#1a1a19; --line:#2c2c2a; --grid:#262624;
+      --ink:#f0efec; --ink2:#c3c2b7; --ink3:#8d8c85;
+      --accent:#3987e5; --chip:#252523; --chip-on:#f0efec; --chip-on-ink:#1a1a19;
+      --github:#3987e5; --reddit:#d95926; --youtube:#199e70; --newsletter:#c98500;
+      --t-low:#184f95; --t-med:#3987e5; --t-high:#9ec5f4;
+      --seq:#3987e5; --warn:#e0a040;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color:inherit; }
+  .wrap { max-width:1280px; margin:0 auto; padding:20px 20px 60px; }
+  header { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+  h1 { font-size:20px; margin:0; letter-spacing:-.01em; }
+  .sub { color:var(--ink2); font-size:13px; }
+  .grow { flex:1; }
+  button, input, select { font:inherit; color:inherit; }
+  .btn { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:5px 10px; cursor:pointer; }
+  .banner { background:color-mix(in srgb, var(--warn) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+            color:var(--ink); border-radius:8px; padding:8px 12px; margin-bottom:14px; font-size:13px; }
+  .filters { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px; display:grid; gap:10px; margin-bottom:16px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .search { flex:1; min-width:240px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .search:focus, .btn:focus-visible, .chip:focus-visible, select:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  select { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:7px 8px; }
+  .chip { background:var(--chip); border:1px solid transparent; border-radius:999px; padding:4px 11px; cursor:pointer; font-size:13px; display:inline-flex; gap:6px; align-items:center; }
+  .chip[aria-pressed="true"] { background:var(--chip-on); color:var(--chip-on-ink); }
+  .chip .n { color:var(--ink3); font-variant-numeric:tabular-nums; }
+  .chip[aria-pressed="true"] .n { color:inherit; opacity:.7; }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-width:0; }
+  .kpi .v { font-size:30px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .kpi .l { color:var(--ink2); font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:12px; margin-bottom:16px; }
+  h2 { font-size:13px; margin:0 0 2px; font-weight:600; }
+  .hint { color:var(--ink3); font-size:12px; margin-bottom:10px; }
+  .bars { display:grid; gap:7px; }
+  .bar { display:grid; grid-template-columns:132px 1fr 64px; gap:10px; align-items:center; font-size:13px; cursor:default; }
+  .bar.click { cursor:pointer; }
+  .bar .lab { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+  .track { height:10px; background:var(--grid); border-radius:5px; overflow:hidden; display:flex; gap:2px; }
+  .fill { height:100%; border-radius:0 4px 4px 0; min-width:2px; }
+  .seg { height:100%; min-width:0; }
+  .seg:first-child { border-radius:5px 0 0 5px; } .seg:last-child { border-radius:0 5px 5px 0; }
+  .val { text-align:right; font-variant-numeric:tabular-nums; color:var(--ink2); }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink2); margin-top:10px; }
+  .legend span { display:inline-flex; gap:6px; align-items:center; }
+  .sw { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .up { color:var(--ink2); font-size:11px; }
+  .feedhead { display:flex; align-items:baseline; gap:12px; margin:4px 0 8px; }
+  .item { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; display:grid; grid-template-columns:1fr auto; gap:4px 16px; }
+  .item h3 { margin:0; font-size:14.5px; font-weight:600; }
+  .item h3 a { text-decoration:none; } .item h3 a:hover { text-decoration:underline; }
+  .meta { color:var(--ink2); font-size:12px; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center; }
+  .snip { color:var(--ink2); font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; grid-column:1/-1; }
+  .q { text-align:right; font-variant-numeric:tabular-nums; }
+  .q b { font-size:18px; } .q small { display:block; color:var(--ink2); font-size:11px; }
+  .tag { background:var(--chip); border-radius:6px; padding:0 6px; font-size:11px; color:var(--ink2); }
+  #tip { position:fixed; pointer-events:none; background:var(--ink); color:var(--bg); padding:6px 9px; border-radius:6px; font-size:12px; display:none; z-index:9; max-width:260px; box-shadow:0 2px 10px #0003; }
+  svg text { fill:var(--ink3); font-size:11px; }
+  .empty { color:var(--ink3); padding:18px 0; text-align:center; }
+  @media (max-width:520px){ .grid{grid-template-columns:1fr} .bar{grid-template-columns:96px 1fr 52px} .item{grid-template-columns:1fr} .q{text-align:left} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>LoL Transfer Radar</h1>
+    <span class="sub" id="gen"></span>
+    <span class="grow"></span>
+    <button class="btn" id="theme" aria-label="Toggle dark mode">Theme</button>
+  </header>
+  <div class="banner" id="demo" hidden><b>Demo data.</b> Synthetic items with fictional teams and players, generated by <code>python radar.py run --demo</code>. Nothing here is real transfer news.</div>
+
+  <section class="filters" aria-label="Filters">
+    <div class="row">
+      <input class="search" id="q" type="search" placeholder="Search titles, summaries, tags, sources…  (all words must match)" aria-label="Search">
+      <select id="range" aria-label="Time range">
+        <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option><option value="9999">All time</option>
+      </select>
+      <select id="tier" aria-label="Minimum quality">
+        <option value="">Any quality</option><option value="Medium">Medium and up</option><option value="High">High only</option>
+      </select>
+      <select id="sort" aria-label="Sort">
+        <option value="new">Newest first</option><option value="quality">Highest quality</option><option value="hot">Most engagement</option>
+      </select>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+    <div class="row" id="cats" role="group" aria-label="Category"></div>
+    <div class="row" id="srcs" role="group" aria-label="Source type"></div>
+  </section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="grid">
+    <div class="card"><h2>Distribution by source type</h2><div class="hint">Items matching the filters. Click a row to filter.</div><div class="bars" id="dist"></div></div>
+    <div class="card"><h2>Trending topics</h2><div class="hint">Terms in titles and tags, weighted by quality, over the last 7 days vs the 7 before. Click to search.</div><div class="bars" id="trend"></div></div>
+    <div class="card"><h2>Quality breakdown</h2><div class="hint">Tier mix per source type, and what drives the score on average.</div><div class="bars" id="qual"></div><div class="legend" id="qleg"></div><div class="bars" id="qparts" style="margin-top:14px"></div></div>
+    <div class="card"><h2>New items per day</h2><div class="hint">By source type, based on publish date.</div><div id="time"></div><div class="legend" id="tleg"></div></div>
+  </section>
+
+  <div class="feedhead"><h2 style="font-size:15px" id="feedtitle">What's new</h2><span class="sub" id="feedcount"></span></div>
+  <div id="feed"></div>
+  <p style="text-align:center"><button class="btn" id="more" hidden>Show more</button></p>
+</div>
+<div id="tip"></div>
+<script src="data.js"></script>
+<script>
+const D = window.RADAR || {meta:{sources:[]}, items:[]};
+const TYPES = [["github","GitHub"],["reddit","Reddit"],["youtube","YouTube"],["newsletter","Newsletters"]];
+const TNAME = Object.fromEntries(TYPES), TIERS = ["Low","Medium","High"];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3)+"k" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(Math.round(n));
+const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const NOW = Date.now(), DAY = 864e5;
+D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.hay = norm([i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); });
+
+const CATS = new Set(D.items.map(i=>i.category));
+const S = {q:"", range:30, tier:"", sort:"new", cats:new Set(), srcs:new Set(), shown:30};
+
+/* ---------- filtering ---------- */
+function filtered(skip) {
+  const words = norm(S.q).split(/\s+/).filter(Boolean);
+  const tierMin = S.tier ? TIERS.indexOf(S.tier) : 0;
+  return D.items.filter(i =>
+    NOW - i.t <= S.range*DAY &&
+    TIERS.indexOf(i.tier) >= tierMin &&
+    (skip==="cat" || !S.cats.size || S.cats.has(i.category)) &&
+    (skip==="src" || !S.srcs.size || S.srcs.has(i.type)) &&
+    words.every(w => i.hay.includes(w)));
+}
+const engage = i => i.type==="github" ? (i.metrics.stars||0) : i.type==="reddit" ? (i.metrics.upvotes||0)+2*(i.metrics.comments||0) : i.type==="youtube" ? (i.metrics.views||0) : (i.metrics.words||0);
+
+/* ---------- widgets ---------- */
+function barRow(label, color, frac, value, extra="", attrs="") {
+  return `<div class="bar ${attrs?'click':''}" ${attrs}><span class="lab">${label}</span>
+    <span class="track"><span class="fill" style="width:${Math.max(frac*100,1)}%;background:${color}"></span></span>
+    <span class="val">${value}${extra}</span></div>`;
+}
+function renderControls() {
+  const base = filtered("cat"), counts = {};
+  base.forEach(i => counts[i.category] = (counts[i.category]||0)+1);
+  const cats = [...new Set(D.items.map(i=>i.category))].sort();
+  $("cats").innerHTML = `<button class="chip" data-cat="" aria-pressed="${!S.cats.size}">All categories</button>` +
+    cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.cats.has(c)}">${esc(c)} <span class="n">${counts[c]||0}</span></button>`).join("");
+  const sb = filtered("src"), sc = {}; sb.forEach(i => sc[i.type]=(sc[i.type]||0)+1);
+  $("srcs").innerHTML = `<button class="chip" data-src="" aria-pressed="${!S.srcs.size}">All sources</button>` +
+    TYPES.map(([k,n]) => `<button class="chip" data-src="${k}" aria-pressed="${S.srcs.has(k)}"><span class="dot" style="background:var(--${k})"></span>${n} <span class="n">${sc[k]||0}</span></button>`).join("");
+}
+function renderKpis(items) {
+  const last = d => items.filter(i => NOW - i.t <= d*DAY).length;
+  const avg = items.length ? Math.round(items.reduce((a,i)=>a+i.quality,0)/items.length) : 0;
+  const hi = items.filter(i=>i.tier==="High").length;
+  const k = [[items.length,"items match"],[last(1),"published in last 24h"],[avg,"average quality"],[items.length?Math.round(100*hi/items.length)+"%":"–","high-quality share"]];
+  $("kpis").innerHTML = k.map(([v,l]) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+function renderDist(items) {
+  const c = {}; items.forEach(i => c[i.type]=(c[i.type]||0)+1);
+  const rows = TYPES.map(([k,n]) => [k,n,c[k]||0]).sort((a,b)=>b[2]-a[2]), max = Math.max(1,...rows.map(r=>r[2]));
+  $("dist").innerHTML = rows.map(([k,n,v]) => barRow(n, `var(--${k})`, v/max, v,
+      ` <span class="up">${items.length?Math.round(100*v/items.length):0}%</span>`, `data-src="${k}" tabindex="0" role="button"`)).join("");
+}
+const STOP = new Set("the a an and or of to in on for with from at by is are was were be been as it its this that these those after before over under into out up down about how why what who when will would could should has have had not but vs via than then they their his her he she we you your our us new more most just now still also all any every each can may one two per get gets got".split(" "));
+const GENERIC = new Set("league legends lol esports esport sources source say says said report reports official season split week demo roster rosters".split(" "));
+function tokens(i) {
+  const w = norm(i.title).replace(/[^a-z0-9+' -]/g," ").split(/\s+/).filter(x => x.length>2 && !STOP.has(x) && !GENERIC.has(x) && !/^\d+$/.test(x));
+  const set = new Set(w);
+  for (let k=0;k<w.length-1;k++) set.add(w[k]+" "+w[k+1]);
+  i.tags.forEach(t => { if (!CATS.has(t)) set.add(norm(t)); });
+  return set;
+}
+function renderTrend(items) {
+  const win = 7*DAY, cur = {}, prev = {}, cnt = {};
+  const pool = D.items.filter(i => NOW - i.t <= 2*win);        // previous window needs items outside the date filter
+  const keep = new Set(items.map(i=>i.id));
+  const words = norm(S.q).split(/\s+/).filter(Boolean);
+  pool.forEach(i => {
+    const ok = (!S.cats.size||S.cats.has(i.category)) && (!S.srcs.size||S.srcs.has(i.type)) && words.every(w=>i.hay.includes(w));
+    if (!ok) return;
+    const inCur = NOW - i.t <= win, w = i.quality/100;
+    tokens(i).forEach(t => { if (inCur) { cur[t]=(cur[t]||0)+w; cnt[t]=(cnt[t]||0)+1; } else prev[t]=(prev[t]||0)+w; });
+  });
+  let terms = Object.keys(cur).filter(t => cnt[t]>=3).map(t => ({t, c:cur[t], p:prev[t]||0, n:cnt[t]}))
+     .map(x => ({...x, g:(x.c-x.p)/(x.p+2), s:x.c*(1+Math.max(0,Math.min(2,(x.c-x.p)/(x.p+2))))*(x.t.includes(" ")?1.25:1)}))
+     .sort((a,b)=>b.s-a.s);
+  const phrases = terms.filter(x => x.t.includes(" "));
+  terms = terms.filter(x => x.t.includes(" ") || !phrases.some(p => p.t.split(" ").includes(x.t) && p.n >= 0.5*x.n));
+  const out = [];
+  for (const x of terms) {                                         // drop terms already covered by a chosen phrase
+    if (out.some(o => (o.t.includes(x.t)||x.t.includes(o.t)) && Math.abs(o.n-x.n)<=0.6*Math.max(o.n,x.n))) continue;
+    out.push(x); if (out.length===10) break;
+  }
+  const max = Math.max(1,...out.map(o=>o.c));
+  $("trend").innerHTML = out.length ? out.map(o => barRow(esc(o.t), "var(--seq)", o.c/max, o.n,
+      o.p<0.5||o.c/o.p>6 ? ` <span class="up">new</span>` : ` <span class="up">${o.c>=o.p?"▲":"▼"}${Math.abs(Math.round(100*(o.c-o.p)/o.p))}%</span>`, `data-term="${esc(o.t)}" tabindex="0" role="button"`)).join("")
+    : `<div class="empty">Not enough items yet (a topic needs 3+).</div>`;
+}
+function renderQuality(items) {
+  const col = {Low:"var(--t-low)", Medium:"var(--t-med)", High:"var(--t-high)"};
+  const rows = TYPES.map(([k,n]) => {
+    const its = items.filter(i=>i.type===k), c = {Low:0,Medium:0,High:0}; its.forEach(i=>c[i.tier]++);
+    return {k,n,its,c,avg:its.length?Math.round(its.reduce((a,i)=>a+i.quality,0)/its.length):null};
+  });
+  $("qual").innerHTML = rows.map(r => `<div class="bar" data-q="${r.k}"><span class="lab">${r.n}</span>
+    <span class="track">${TIERS.slice().reverse().map(t => r.c[t] ? `<span class="seg" data-tip="${r.n}: ${r.c[t]} ${t.toLowerCase()}" style="flex:${r.c[t]};background:${col[t]}"></span>`:"").join("")}</span>
+    <span class="val">${r.avg??"–"}<span class="up"> avg</span></span></div>`).join("");
+  $("qleg").innerHTML = TIERS.slice().reverse().map(t=>`<span><i class="sw" style="background:${col[t]}"></i>${t}${t==="High"?" (70+)":t==="Medium"?" (45–69)":" (<45)"}</span>`).join("");
+  const parts = [["engagement","Engagement"],["relevance","Relevance"],["authority","Source authority"],["freshness","Freshness"]];
+  $("qparts").innerHTML = items.length ? parts.map(([k,n]) => {
+    const a = Math.round(items.reduce((s,i)=>s+i.breakdown[k],0)/items.length);
+    return barRow(n, "var(--seq)", a/100, a);
+  }).join("") : "";
+}
+function renderTime(items) {
+  const days = Math.min(S.range===9999 ? 60 : S.range, 60), el = $("time");
+  const W = el.clientWidth || 440, H = 190, m = {l:26,r:4,t:8,b:20}, iw = W-m.l-m.r, ih = H-m.t-m.b;
+  const b = Array.from({length:days},()=>({github:0,reddit:0,youtube:0,newsletter:0,tot:0}));
+  const today = new Date(); today.setHours(23,59,59,999);
+  items.forEach(i => { const d = Math.floor((today.getTime()-i.t)/DAY); if (d>=0 && d<days) { b[days-1-d][i.type]++; b[days-1-d].tot++; } });
+  const max = Math.max(1,...b.map(x=>x.tot)), bw = iw/days, gap = Math.min(2, bw*.25);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="New items per day by source type">`;
+  [0,.5,1].forEach(f => { const y = m.t+ih*(1-f); svg += `<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="${css('--grid')}"/><text x="${m.l-4}" y="${y+4}" text-anchor="end">${Math.round(max*f)}</text>`; });
+  b.forEach((x,ix) => {
+    let y = m.t+ih; const left = m.l+ix*bw;
+    TYPES.forEach(([k]) => { if (!x[k]) return; const h = ih*x[k]/max; y -= h;
+      svg += `<rect x="${left+gap/2}" y="${y+1}" width="${Math.max(bw-gap,1)}" height="${Math.max(h-2,1)}" rx="2" fill="${css('--'+k)}"/>`; });
+    const dt = new Date(today.getTime()-(days-1-ix)*DAY);
+    svg += `<rect class="hit" x="${left}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent" data-tip="${dt.toLocaleDateString(undefined,{day:'numeric',month:'short'})}: ${x.tot} items${TYPES.filter(([k])=>x[k]).map(([k,n])=>`<br>${n}: ${x[k]}`).join('')}"/>`;
+    if (ix%Math.ceil(days/6)===0) svg += `<text x="${left+bw/2}" y="${H-5}" text-anchor="middle">${dt.toLocaleDateString(undefined,{day:'numeric',month:'short'})}</text>`;
+  });
+  el.innerHTML = svg + "</svg>";
+  $("tleg").innerHTML = TYPES.map(([k,n])=>`<span><i class="sw" style="background:var(--${k})"></i>${n}</span>`).join("");
+}
+function ago(t) { const d=(NOW-t)/36e5; return d<1?"just now":d<24?Math.round(d)+"h ago":d<48?"yesterday":Math.round(d/24)+"d ago"; }
+function metricStr(i) {
+  const m = i.metrics;
+  if (i.type==="github") return `${fmt(m.stars||0)} stars${m.stars_7d!=null?` (${m.stars_7d>=0?"+":""}${m.stars_7d} this week)`:""} · ${fmt(m.forks||0)} forks`;
+  if (i.type==="reddit") return `${fmt(m.upvotes||0)} upvotes · ${fmt(m.comments||0)} comments`;
+  if (i.type==="youtube") return `${fmt(m.views||0)} views · ${fmt(m.likes||0)} likes`;
+  return `~${fmt(m.words||0)} words`;
+}
+function renderFeed(items) {
+  const sorted = items.slice().sort(S.sort==="quality" ? (a,b)=>b.quality-a.quality||b.t-a.t : S.sort==="hot" ? (a,b)=>engage(b)-engage(a) : (a,b)=>b.t-a.t);
+  $("feedtitle").textContent = S.sort==="quality" ? "Highest quality" : S.sort==="hot" ? "Most engagement" : "What's new";
+  $("feedcount").textContent = `${items.length} item${items.length===1?"":"s"}`;
+  $("feed").innerHTML = sorted.slice(0,S.shown).map(i => `<article class="item">
+    <div><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a></h3>
+    <div class="meta"><span><i class="dot" style="background:var(--${i.type})"></i> ${TNAME[i.type]} · ${esc(i.source)}</span><span>${ago(i.t)}</span>
+    <span>${metricStr(i)}</span><span class="tag">${esc(i.category)}</span>${i.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+    <div class="q" data-tip="Engagement ${i.breakdown.engagement} · Relevance ${i.breakdown.relevance} · Authority ${i.breakdown.authority} · Freshness ${i.breakdown.freshness}"><b>${i.quality}</b><small>${i.tier}</small></div>
+    ${i.summary?`<div class="snip">${esc(i.summary)}</div>`:""}</article>`).join("") || `<div class="card empty">No items match these filters.</div>`;
+  $("more").hidden = sorted.length <= S.shown;
+}
+function render() {
+  const items = filtered();
+  renderControls(); renderKpis(items); renderDist(items); renderTrend(items); renderQuality(items); renderTime(items); renderFeed(items);
+}
+
+/* ---------- events ---------- */
+function toggle(set, v) { if (!v) set.clear(); else set.has(v) ? set.delete(v) : set.add(v); S.shown = 30; render(); }
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-cat]"); if (c) return toggle(S.cats, c.dataset.cat);
+  const s = e.target.closest("[data-src]"); if (s) return toggle(S.srcs, s.dataset.src);
+  const t = e.target.closest("[data-term]"); if (t) { $("q").value = S.q = t.dataset.term; S.shown = 30; render(); }
+});
+document.addEventListener("keydown", e => { if (e.key==="Enter" && e.target.matches("[role=button]")) e.target.click(); });
+$("q").oninput = e => { S.q = e.target.value; S.shown = 30; render(); };
+$("range").onchange = e => { S.range = +e.target.value; render(); };
+$("tier").onchange = e => { S.tier = e.target.value; render(); };
+$("sort").onchange = e => { S.sort = e.target.value; render(); };
+$("more").onclick = () => { S.shown += 30; renderFeed(filtered()); };
+$("reset").onclick = () => { Object.assign(S,{q:"",range:30,tier:"",sort:"new",shown:30}); S.cats.clear(); S.srcs.clear(); $("q").value=""; $("range").value=30; $("tier").value=""; $("sort").value="new"; render(); };
+$("theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.dataset.theme = cur==="dark" ? "light" : "dark"; render();
+};
+const tip = $("tip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display="none"; return; }
+  tip.innerHTML = t.dataset.tip; tip.style.display="block";
+  tip.style.left = Math.min(e.clientX+12, innerWidth-tip.offsetWidth-8)+"px"; tip.style.top = (e.clientY+14)+"px";
+});
+addEventListener("resize", () => renderTime(filtered()));
+
+$("demo").hidden = !D.meta.demo;
+$("gen").textContent = D.meta.generated ? "Updated " + new Date(D.meta.generated).toLocaleString() : "No data yet - run python radar.py run";
+render();
+</script>
+</body>
+</html>
