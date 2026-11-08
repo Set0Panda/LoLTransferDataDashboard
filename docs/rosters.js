@@ -190,7 +190,8 @@
   const rankOf = t => rankIdx[t.lg + "|" + norm(t.name)];
 
   // ---- view ----
-  let VIEW = "cards"; try { VIEW = localStorage.getItem("radar.rosterView") === "matrix" ? "matrix" : "cards"; } catch (e) {}
+  // Matrix by default on wide screens (all teams at a glance), Cards on narrow ones; an explicit choice is remembered.
+  let VIEW = window.innerWidth >= 1100 ? "matrix" : "cards"; try { const v = localStorage.getItem("radar.rosterView"); if (v === "matrix" || v === "cards") VIEW = v; } catch (e) {}
   const S = { lg: null, q: "", only: false };
   const leaguesWithPlayers = [...new Set(T.filter(t => byTeam[t.i].length && t.i === canon[t.i] && t.lg !== "(no league)").map(t => t.reg + "|" + t.lg))]
     .sort((a, b) => { const [ra, la] = a.split("|"), [rb, lb] = b.split("|"); return REGS.indexOf(ra) - REGS.indexOf(rb) || (TOP_LG[la] ? 0 : 1) - (TOP_LG[lb] ? 0 : 1) || la.localeCompare(lb); });
