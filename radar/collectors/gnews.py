@@ -38,7 +38,7 @@ def parse(xml_text, authority, default_auth=0.55, lol=False):
             "source_type": "newsletter", "source_name": publisher, "external_id": link, "title": title,
             "url": link, "author": publisher, "summary": "", "published_at": when,
             "metrics": {"words": 0, "leak": int(sources_scoop)}, "authority": authority.get(publisher, default_auth),
-            "extra": {}, "category_hint": "Transfers & Rumors" if sources_scoop else None, "lol_ctx": lol,
+            "extra": {"lol": int(lol)}, "category_hint": "Transfers & Rumors" if sources_scoop else None, "lol_ctx": lol,
         })
     return out
 

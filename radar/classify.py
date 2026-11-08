@@ -27,34 +27,28 @@ NOISE = re.compile(
 SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
 def _load_lol_names():
-    """Team names and player handles from Contract Radar's data (docs/contract/data.js): a headline that names a known LoL
-    team or player is about LoL even when it carries no 'LoL' keyword (Sheep covers many games, so 'esports' alone proves nothing)."""
+    """Player handles from Contract Radar's data (docs/contract/data.js). A headline naming a known LoL *player* is about LoL
+    even with no 'LoL' keyword. Team names alone are not enough: orgs (Sentinels, Fnatic, G2, Cloud9, LOUD...) field Valorant and
+    CS rosters too, and Sheep covers all of them."""
     root = Path(__file__).resolve().parents[1] / "docs"
     try:
         txt = (root / "contract" / "data.js").read_text(encoding="utf-8")
-        teams = json.loads(re.search(r"window\.GCD_TEAMS\s*=\s*(\[.*?\]);\s*\n", txt, re.S).group(1))
         rows = json.loads(re.search(r"window\.GCD_ROWS\s*=\s*(\[.*?\]);\s*\n", txt, re.S).group(1))
         cw = (root / "common-words.js").read_text(encoding="utf-8")
         common = set(re.search(r'COMMON_WORDS\s*=\s*"([^"]+)"', cw).group(1).split())
     except Exception:
         return None
     names = set()
-    for t in teams:
-        n = t[2].strip()
-        names.add(n.lower())
-        short = re.sub(r"\b(esports?|gaming|team|club|e-sports|academy|youth)\b", "", n, flags=re.I).strip(" .-")
-        if len(short) >= 4: names.add(short.lower())
-        if t[3] and len(t[3]) >= 2 and t[3].upper() in ("T1", "G2", "KT", "DK", "HLE", "BLG", "TES", "JDG", "NIP", "LOUD", "KOI", "NAVI"): names.add(t[3].lower())
     for r in rows:
         h = (r[1] or "").strip()
-        if len(h) >= 5 and " " not in h and h.lower() not in common: names.add(h.lower())
-    names = {n for n in names if len(n) >= 2}
+        if len(h) >= 4 and h.lower() not in common and h.lower() not in PLAYER_STOP: names.add(h.lower())
     return re.compile(r"(?<![a-z0-9])(" + "|".join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r")(?![a-z0-9])", re.I)
 
 
+PLAYER_STOP = {"coach", "analyst", "staff", "team", "sub", "tactical", "cypher", "sage", "jett", "neon", "fade", "omen", "viper", "reyna", "raze", "brimstone", "killjoy", "skye", "yoru", "astra", "chamber", "gekko", "iso", "clove", "vyse", "tejo", "waylay"}   # Valorant agent names etc.
 LOL_NAMES = _load_lol_names()
 
-LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
+LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\blfl\b|\blcp\b|\blla\b|\btcl\b|prime league|ultraliga|superliga|\blvp\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
 LOL_SOURCE = re.compile(r"league|\blol\b|\blck\b|\blec\b|\blcs\b|\blpl\b|leaguepedia", re.I)
 LEAGUES = {"LCK": r"\blck\b", "LEC": r"\blec\b", "LCS": r"\blcs\b|\blta\b", "LPL": r"\blpl\b",
            "CBLOL": r"cblol", "LJL": r"\bljl\b", "PCS": r"\bpcs\b", "VCS": r"\bvcs\b",

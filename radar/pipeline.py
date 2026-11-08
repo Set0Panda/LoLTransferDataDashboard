@@ -58,7 +58,7 @@ def rescore(con, cfg):
                     (q, tier, json.dumps(parts), r["id"]))
         if r["source_type"] != "github":       # keep categories in step with the current keyword rules
             cat, tags, rel = classify({"title": r["title"], "summary": r["summary"], "source_type": r["source_type"],
-                                     "source_name": r["source_name"], "lol_ctx": True,
+                                     "source_name": r["source_name"], "lol_ctx": bool(m.get("_lol")),
                                      "category_hint": "Transfers & Rumors" if m.get("leak") else None})
             if r["source_type"] == "newsletter" and rel < MIN_RELEVANCE:   # tightened rules: retire what no longer qualifies
                 con.execute("DELETE FROM items WHERE id=?", (r["id"],))

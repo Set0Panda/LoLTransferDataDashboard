@@ -63,7 +63,7 @@ def collect(cfg, fixtures=False):
             "url": u, "author": "Sheep Esports", "summary": clean(a["desc"], 300) + (" Tags: " + " ".join(tags) if tags else ""),
             "published_at": a["published"] or None,
             "metrics": {"words": a["words"], "leak": int(leak)},
-            "authority": 0.9, "extra": {}, "lol_ctx": True,
+            "authority": 0.9, "extra": {"lol": 1}, "lol_ctx": True,
             "category_hint": "Transfers & Rumors" if leak or a["title"].lower().startswith("sources:") else None,
         })
     return out
