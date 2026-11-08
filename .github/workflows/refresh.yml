@@ -14,7 +14,7 @@ jobs:
         with: {python-version: "3.12"}
       - name: Sync contract data from Contract Radar (keeps the committed copy if the fetch fails)
         run: |
-          for f in data.js logos.js roles-kr.js; do
+          for f in data.js logos.js roles-kr.js regions.js; do
             curl -fsSL "https://set0panda.github.io/contract-radar/$f" -o "docs/contract/$f.new" && mv "docs/contract/$f.new" "docs/contract/$f" || { rm -f "docs/contract/$f.new"; echo "keeping existing $f"; }
           done
       - run: python radar.py run

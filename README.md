@@ -36,7 +36,7 @@ Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-
 - A starting slot is *projected* when the sheet shows a contract ending after the next aligned end date; otherwise it shows *Open* plus who is expiring.
 - Headlines from the feed that name a player show as a "mentions" tag on the slot, and team-level news is listed on the card. Handles that are also everyday words ("Life", "Time") only count when their team is named too.
 - The sheet lags reality. Put confirmed or rumoured moves in `docs/roster-overrides.js` (format in the file); confirmed ones move the player between cards.
-- `docs/contract/` is a copy of Contract Radar's `data.js`, `logos.js` and `roles-kr.js`, refreshed by the daily Action (it keeps the committed copy if the fetch fails). The aligned-date calendar in `docs/rosters.js` mirrors Contract Radar's; update both together each year.
+- `docs/contract/` is a copy of Contract Radar's `data.js`, `logos.js`, `roles-kr.js` and `regions.js`, refreshed by the daily Action (it keeps the committed copy if the fetch fails). The aligned-date calendar in `docs/rosters.js` mirrors Contract Radar's; update both together each year.
 - `docs/common-words.js` is a generated English word list (wordfreq, top ~5.7k) used for the handle filter.
 
 ## Update cadence
@@ -45,4 +45,6 @@ Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-
 - **The page** re-reads `data.js` every minute while the tab is open and updates in place; GitHub Pages itself lags about a minute behind each push. Real per-minute freshness would need a small server (e.g. a Cloudflare Worker on a 1-minute cron) instead of Actions.
 
 ## League rankings on the roster cards
+Each card also lists the team's **coaches** (from the same sheet; KR coaches aren't in the sheet, so those show a note). Cards are visual: team logo, an accent colour sampled from the logo, a five-segment slot bar, per-role status dots, region logos as the league selector, and a rank-ordered logo strip that scrolls to a card when clicked. In dark mode logos sit on a light plate so dark crests stay visible.
+
 `docs/standings.js` orders each league's cards (rank badge + series record). It is **data copied from Leaguepedia's 2026 standings tables, not a live feed**: Leaguepedia's API rate-limits anonymous callers (it refused my queries), and every league lays its season out differently (LCK/LPL use groups, LCS/LEC/CBLOL a table per split, LCP a Swiss stage), so there is no single table to scrape unattended. Covered: LCK, LPL, LEC, LCS, CBLOL, LCP. Others fall back to A-Z. To refresh after a split ends, run `scripts/extract-standings.browser.js` on lol.fandom.com and paste the result in. `aliases` in that file maps Leaguepedia names to the contract sheet's names.

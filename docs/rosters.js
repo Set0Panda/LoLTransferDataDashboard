@@ -35,14 +35,17 @@
     if (r[2] === "STAFF" && byKey[r[0] + "|" + r[1].toLowerCase()].some(x => x !== r && x[2] !== "STAFF")) return false;
     return true;
   });
-  const byTeam = T.map(() => []);
+  const byTeam = T.map(() => []), coaches = T.map(() => []), hasCoachData = {};
+  const endYear = p => (p.end || "").replace(/^W/, "").slice(0, 4);   // "2027-11-15" and "W2027" (day after Worlds 2027) both -> 2027
   rows.forEach(r => {
     const ti = canon[r[0]], t = T[ti];
     const p = { name: r[1], role: r[2], end: r[3], res: r[4], ti };
     if (!p.role && t.reg === "KR" && XR[t.name + "|" + p.name]) p.role = XR[t.name + "|" + p.name];
     p.player = STARTERS.includes(p.role) || p.role === "SUB" || (p.role === "" && t.reg === "KR" && !HAS_X);
-    p.ms = /^\d{4}-\d\d-\d\d$/.test(p.end) ? Date.parse(p.end + "T23:59:00Z") : null;
+    const wm = /^W(\d{4})$/.exec(p.end || ""), wal = wm && ALIGNED.find(d => d.startsWith(wm[1]));
+    p.ms = /^\d{4}-\d\d-\d\d$/.test(p.end) ? Date.parse(p.end + "T23:59:00Z") : wal ? Date.parse(wal + "T23:59:00Z") : null;   // coaches often list "W<year>" = day after Worlds
     if (p.player) byTeam[ti].push(p);
+    if (p.role === "COACH") { coaches[ti].push(p); hasCoachData[t.reg] = true; }
   });
   const teamByName = {}; T.forEach(t => { teamByName[norm(t.name)] = t.i; });
 
@@ -54,7 +57,7 @@
     if (o.status === "confirmed") {
       if (f !== undefined) leaving[f + "|" + norm(o.player)] = o;
       if (to !== undefined) {
-        const src = f !== undefined ? byTeam[f].find(p => norm(p.name) === norm(o.player)) : null;
+        const src = f !== undefined ? byTeam[f].concat(coaches[f]).find(p => norm(p.name) === norm(o.player)) : null;
         incoming[to].push({ name: o.player, role: o.role || (src && src.role) || "", from: o.from, o });
       }
     } else {
@@ -65,7 +68,7 @@
   // ---- mentions from the transfer feed ----
   const COMMON = new Set((window.COMMON_WORDS || []).concat(["hype", "potential", "leave", "time", "life"]));   // handles that are also everyday words
   const handleIdx = new Map();      // lowercased handle -> [{ti, p}]
-  T.forEach(t => byTeam[t.i].forEach(p => {
+  T.forEach(t => byTeam[t.i].concat(coaches[t.i]).forEach(p => {
     const h = norm(p.name);
     if (h.length < 3 || /\s/.test(h) || NAME_STOP.has(h)) return;
     if (!handleIdx.has(h)) handleIdx.set(h, []); handleIdx.get(h).push({ ti: t.i, p });
@@ -138,36 +141,63 @@
     return d ? `<img class="rlogo" alt="" src="data:image/webp;base64,${d}">`
              : `<span class="rlogo ph" aria-hidden="true">${esc((t.code || t.name).replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase())}</span>`;
   }
+  const RL = window.GCD_REGLOGOS || {};
+  const regLogo = g => `<span class="rreg" title="${g}">${RL[g] ? `<img class="rreglogo" alt="${g}" src="data:image/webp;base64,${RL[g]}">` : g}</span>`;
+  const accCache = {};
+  function applyAccent(card) {          // colour accent sampled from the team logo
+    const img = card.querySelector("img.rlogo"); if (!img) return;
+    const key = card.dataset.n, set = c => card.style.setProperty("--ac", c);
+    if (accCache[key]) { set(accCache[key]); return; }
+    const go = () => { try {
+      const cv = document.createElement("canvas"); cv.width = cv.height = 24; const x = cv.getContext("2d"); x.drawImage(img, 0, 0, 24, 24);
+      const d = x.getImageData(0, 0, 24, 24).data; let r = 0, g = 0, b = 0, w = 0;
+      for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 128) continue; const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); const sat = (mx - mn) / (mx || 1), wt = sat * sat * (mx / 255); if (wt < .02) continue; r += d[i] * wt; g += d[i + 1] * wt; b += d[i + 2] * wt; w += wt; }
+      if (w > .5) { const c = `rgb(${r / w | 0},${g / w | 0},${b / w | 0})`; accCache[key] = c; set(c); }
+    } catch (e) {} };
+    img.complete ? go() : (img.onload = go);
+  }
   const flag = (arr, label) => arr && arr.length ? `<a class="rflag" href="${esc(best(arr)[0].url)}" target="_blank" rel="noopener" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</a>` : "";
 
   function card(t) {
     const rk = rankOf(t);
     const base = byTeam[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)] || false);
-    const gone = byTeam[t.i].filter(p => leaving[t.i + "|" + norm(p.name)]);
+    const gone = byTeam[t.i].concat(coaches[t.i]).filter(p => leaving[t.i + "|" + norm(p.name)]);
     let projected = 0, hasRumor = false, open = false;
+    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions")}`; };
+    const sts = [];
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
       const signed = inRole.filter(p => p.ms != null && p.ms > cut);
       const expiring = inRole.filter(p => p.ms != null && p.ms <= cut);
       const noDate = inRole.filter(p => p.ms == null);
       const joins = incoming[t.i].filter(x => x.role === role);
-      const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions")}`; };
+      const st = (signed.length || joins.length) ? "ok" : expiring.length ? "exp" : "open"; sts.push(st);
       let main = "";
       joins.forEach(j => { projected++; main += `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">from ${esc(j.from || "?")}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`; });
-      if (signed.length) { projected += joins.length ? 0 : 1; main += signed.map(p => `<div>${nm(p)} <span class="ok">to ${esc(p.end.slice(0, 4))}</span></div>`).join(""); }
+      if (signed.length) { projected += joins.length ? 0 : 1; main += signed.map(p => `<div>${nm(p)} <span class="ok">to ${esc(endYear(p))}</span></div>`).join(""); }
       if (!signed.length && !joins.length) { open = true; main += `<div class="open">Open</div>`; }
       if (expiring.length) main += `<div class="ex">${signed.length || joins.length ? "also " : ""}expiring: ${expiring.map(nm).join(", ")}</div>`;
       if (noDate.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
-      return `<div class="rrow"><span class="rl">${role}</span><div>${main}</div></div>`;
+      return `<div class="rrow" data-s="${st}"><span class="rl">${role}</span><div>${main}</div></div>`;
     }).join("");
+    const cs = coaches[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)]);
+    const cSigned = cs.filter(p => p.ms != null && p.ms > cut), cExp = cs.filter(p => p.ms != null && p.ms <= cut), cNo = cs.filter(p => p.ms == null);
+    let coachMain = incoming[t.i].filter(x => x.role === "COACH").map(j => `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">from ${esc(j.from || "?")}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`).join("");
+    coachMain += cSigned.map(p => `<div>${nm(p)} <span class="ok">to ${esc(endYear(p))}</span></div>`).join("");
+    if (cExp.length) coachMain += `<div class="ex">expiring: ${cExp.map(nm).join(", ")}</div>`;
+    if (cNo.length) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
+    if (!coachMain) coachMain = `<div class="ex">${hasCoachData[t.reg] ? "none listed" : "not in this region's sheet"}</div>`;
+    const coachHtml = `<div class="rrow"><span class="rl">COACH</span><div>${coachMain}</div></div>`;
     const subs = base.filter(p => !STARTERS.includes(p.role));
-    const subHtml = subs.length ? `<div class="rrow"><span class="rl">OTHER</span><div class="ex">${subs.map(p => esc(p.name) + (p.ms != null ? (p.ms > cut ? ` (to ${esc(p.end.slice(0, 4))})` : " (expiring)") : "")).join(", ")}</div></div>` : "";
+    const subHtml = subs.length ? `<div class="rrow"><span class="rl">OTHER</span><div class="ex">${subs.map(p => esc(p.name) + (p.ms != null ? (p.ms > cut ? ` (to ${esc(endYear(p))})` : " (expiring)") : "")).join(", ")}</div></div>` : "";
     const leftHtml = gone.length ? `<div class="rrow"><span class="rl">LEAVING</span><div class="ex">${gone.map(p => { const o = leaving[t.i + "|" + norm(p.name)]; return esc(p.name) + (o.to ? " → " + esc(o.to) : ""); }).join(", ")} <span class="tagc">CONFIRMED</span></div></div>` : "";
     const news = best(teamItems[t.i]).slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
     const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
-    return { html: `<article class="rcard"><h3>${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span>` : ""}${logo(t)}<span>${esc(t.name)}</span><small>${rk ? esc(rk.rec) : esc(t.code || "")}</small></h3>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}${hasRumor ? ' · <span class="tagr">linked in news</span>' : ""}</p>${slots}${subHtml}${leftHtml}${newsHtml}</article>`,
+    const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
+    const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
+    return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}${hasRumor ? ' · <span class="tagr">linked in news</span>' : ""}</p>${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
@@ -180,22 +210,26 @@
       .sort((a, b) => { const ra = rankOf(a), rb = rankOf(b); return q ? a.name.localeCompare(b.name) : ((ra ? ra.rank : 999) - (rb ? rb.rank : 999)) || a.name.localeCompare(b.name); });
     let cards = teams.map(card);
     if (S.only) cards = cards.filter(c => c.flagged);
+    const strip = (!q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.projected}/5 projected">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.projected}/5</span></button>`).join("")}</div>` : "";
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
     const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Signings and releases since then aren't here unless you add them in <code>roster-overrides.js</code>.</div>` : "";
     const sv = ST.leagues && ST.leagues[lg];
     const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.stage)}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
     const sel = REGS.map(g => {
       const ls = leaguesWithPlayers.filter(k => k.startsWith(g + "|")); if (!ls.length) return "";
-      return `<div class="row"><span class="rreg">${g}</span>${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;
+      return `<div class="row">${regLogo(g)}${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;
     }).join("");
     box.innerHTML = `<section class="filters"><div class="row"><input class="search" id="rq" type="search" placeholder="Search a team or player across all leagues…" value="${esc(S.q)}" aria-label="Search rosters">
       <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button></div>${sel}
       <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}</section>
+      ${strip}
       <div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>`;
     const rq = document.getElementById("rq");
     rq.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = document.getElementById("rq"); n.focus(); n.setSelectionRange(pos, pos); };
     document.getElementById("ronly").onclick = () => { S.only = !S.only; render(); };
+    box.querySelectorAll(".rcard").forEach(applyAccent);
+    box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("rpulse"); setTimeout(() => el.classList.remove("rpulse"), 1400); } });
     box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; render(); });
   }
   window.Rosters = { render, rebuild() { buildMentions(); render(); } };
