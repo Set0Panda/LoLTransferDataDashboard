@@ -79,11 +79,11 @@
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
   });
-  let playerItems = new Map(), teamItems = T.map(() => []);
+  let playerItems = new Map(), teamItems = T.map(() => []), itemTeams = new Map();
   function buildMentions() {
     NOW = Date.now();
   const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo));
-    playerItems = new Map(); teamItems = T.map(() => []);
+    playerItems = new Map(); teamItems = T.map(() => []); itemTeams = new Map();
   items.forEach(it => {
     if (NOW - Date.parse(it.published || it.seen) > 45 * MS) return;
     const text = it.title + " " + (it.summary || "").slice(0, 300);
@@ -98,7 +98,7 @@
       }
     });
     const toks = new Set(low.split(/[^a-z0-9.']+/).filter(Boolean));
-    const explicit = new Set(hitTeams), hitPlayers = [];
+    const explicit = new Set(hitTeams), hitPlayers = []; itemTeams.set(it, explicit);
     toks.forEach(w => { if (handleIdx.has(w)) handleIdx.get(w).forEach(c => hitPlayers.push(c)); });
     hitPlayers.forEach(c => {
       // a handle that is also a common word ("Life", "Time") only counts when its own team is named too
@@ -109,7 +109,7 @@
       if (!playerItems.get(k).includes(it)) playerItems.get(k).push(it);
       hitTeams.add(c.ti);
     });
-    if (hitPlayers.length) hitTeams.forEach(ti => { if (!teamItems[ti].includes(it)) teamItems[ti].push(it); });
+    hitTeams.forEach(ti => { if (!teamItems[ti].includes(it)) teamItems[ti].push(it); });   // named team or named player: it is that team's news
   });
   }
   buildMentions();
@@ -246,13 +246,20 @@
     const P = PARTS[t.i], rk = rankOf(t), pl = DR.pl;
     const mine = pl && playerItems.get(t.i + "|" + norm(pl)) ? uniq(best(playerItems.get(t.i + "|" + norm(pl)))) : [];
     const mineT = new Set(mine.map(i => norm(i.title))), all = uniq(best(teamItems[t.i])).filter(i => !mineT.has(norm(i.title)));
+    let note = "";
+    if (mine.length) {              // the sheet can lag: when the headlines mostly name another team, say so
+      const away = new Map(); let n = 0;
+      mine.forEach(i => { const ts = itemTeams.get(i); if (ts && ts.size && !ts.has(t.i)) { n++; ts.forEach(x => away.set(x, (away.get(x) || 0) + 1)); } });
+      const top = [...away.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (n * 2 > mine.length && top) note = `<div class="rdnote"><b>Possible move.</b> ${n} of ${mine.length} headlines name ${esc(T[top[0]].name)}, not ${esc(t.name)}. The contract sheet may be out of date for ${esc(pl)}.</div>`;
+    }
     dr.style.setProperty("--ac", accCache[t.name] || "var(--line)");
     dr.innerHTML = `<div class="rdhead">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${esc(t.lg)}${rk ? ` · <span class="rrank">#${rk.rank}</span> ${esc(rk.rec)}` : ""}</div></div><button type="button" class="rdx" aria-label="Close panel">&times;</button></div>
       <p class="rsum">${P.projected} of 5 starting slots projected for ${new Date(next).getUTCFullYear() + 1}</p>
       ${P.slots}${P.coachHtml}${P.subHtml}${P.leftHtml}
-      <div class="rdnews">${pl ? `<h4>Mentions of ${esc(pl)} (${mine.length})</h4><ul>${mine.map(newsLi).join("") || '<li class="ex">None in the last 45 days.</li>'}</ul>` : ""}
-        <h4>${pl ? "Other team news" : "Team news"} (${all.length})</h4>${P.rumors ? `<div class="rdr">${P.rumors}</div>` : ""}<ul>${all.map(newsLi).join("") || '<li class="ex">No headlines name this team or its players yet.</li>'}</ul>
-        <p class="hint">Headlines come from the feed and are matched by team name and player handle, so a hit can be about a different player with the same handle.</p></div>`;
+      <div class="rdnews">${pl ? `<h4>Mentions of ${esc(pl)} (${mine.length})</h4>${note}<ul>${mine.map(newsLi).join("") || '<li class="ex">None in the last 45 days.</li>'}</ul>` : ""}
+        <h4>${pl ? "Other team news" : "Team news"} (${all.length})</h4>${P.rumors ? `<div class="rdr">${P.rumors}</div>` : ""}<ul>${all.map(newsLi).join("") || '<li class="ex">No transfer, contract or roster headlines name this team or its players in the last 45 days. Match coverage is filtered out of the feed.</li>'}</ul>
+        <p class="hint">Headlines come from the feed and are matched by team name and player handle, so a hit can be about a different player with the same handle. Only moves, contracts and rosters are kept: match results and previews are filtered out.</p></div>`;
     dr.querySelectorAll(".pn").forEach(e => { if (pl && e.dataset.h === norm(pl)) e.classList.add("hl"); });
     const hl = dr.querySelector(".pn.hl"); if (hl) hl.scrollIntoView({ block: "center" });
   }
