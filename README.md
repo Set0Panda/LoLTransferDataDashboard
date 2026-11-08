@@ -73,3 +73,5 @@ The **Contract Radar** tab is a native view of the same snapshot (`docs/contract
 | `roster-overrides.js` (confirmed signings) | **manual by design**: it is your call what counts as confirmed |
 
 **LoL-only filter.** An item passes if it names League explicitly (league, event or LoL terms), or a known LoL *player handle* (after org names such as "Xi Lai Gaming" are stripped, so an org can't fake a handle), or a known LoL *team* together with a League-only role word (jungler, midlaner, ADC...). A team name alone is not enough, because G2, Fnatic, FURIA, LOUD, NRG and others field Valorant and CS rosters too.
+
+Visit counts use GoatCounter (no cookies, no personal data), the same counter as Contract Radar; the site code is in `docs/site-config.js` (set it to `""` to turn it off). Tab switches are counted as `/tab/<name>`.
