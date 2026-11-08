@@ -146,17 +146,22 @@
   .rdnote { margin:6px 0 8px; padding:8px 10px; border-radius:8px; font-size:12px; line-height:1.4; color:var(--ink); background:color-mix(in srgb, var(--warn) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); }
   .rdnote b { color:var(--warn); }
   .seg { display:inline-flex; gap:4px; margin-left:auto; }
-  .mwrap { overflow-x:auto; margin:14px 0; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
-  table.mx { border-collapse:separate; border-spacing:0; width:100%; min-width:1060px; font-size:12px; }
-  .mx th, .mx td { padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; text-align:left; font-weight:400; }
-  .mx thead th { font-size:11px; letter-spacing:.06em; color:var(--ink3); padding:8px 10px; }
-  .mx tbody tr:last-child th, .mx tbody tr:last-child td { border-bottom:0; }
-  .mx .mt { position:sticky; left:0; z-index:1; min-width:200px; background:linear-gradient(90deg,color-mix(in srgb,var(--ac,var(--line)) 14%,var(--surface)),var(--surface)); border-left:4px solid var(--ac,var(--line)); border-right:1px solid var(--line); cursor:pointer; }
+  .mwrap { overflow-x:auto; margin:10px 0; padding:0 2px 6px; }
+  table.mx { border-collapse:separate; border-spacing:0 10px; width:100%; min-width:1080px; font-size:12px; }
+  .mx th, .mx td { padding:10px 12px; vertical-align:top; text-align:left; font-weight:400; background:var(--surface); border-top:3px solid var(--ac,var(--line)); border-bottom:1px solid var(--line); }
+  .mx thead th { background:none; border:0; padding:0 12px 0; font-size:11px; letter-spacing:.06em; color:var(--ink3); }
+  .mx tbody td { background:linear-gradient(180deg,color-mix(in srgb,var(--ac,var(--line)) 12%,var(--surface)),var(--surface) 90px); border-left:1px solid var(--line); }
+  .mx tbody td:last-child { border-right:1px solid var(--line); border-radius:0 12px 12px 0; }
+  .mx .mt { position:sticky; left:0; z-index:1; min-width:210px; border-left:1px solid var(--line); border-radius:12px 0 0 12px; cursor:pointer; background:linear-gradient(180deg,color-mix(in srgb,var(--ac,var(--line)) 20%,var(--surface)),color-mix(in srgb,var(--ac,var(--line)) 6%,var(--surface)) 120px); box-shadow:6px 0 8px -6px rgba(0,0,0,.25); }
   .mx .mt:hover b { text-decoration:underline; }
-  .mtt { display:flex; align-items:center; gap:10px; } .mtt b { font-size:14px; } .mx .rlogo { width:38px; height:38px; }
-  .mtb { display:flex; align-items:center; gap:8px; margin-top:6px; } .mtb .rbar i { width:8px; height:16px; }
-  .mx td.mc { width:14%; min-width:140px; cursor:pointer; overflow-wrap:anywhere; } .mx td.mc:hover { outline:1px solid var(--line); outline-offset:-1px; }
-  .mx td.s-ok { background:color-mix(in srgb,var(--ok) 9%,var(--surface)); } .mx td.s-exp { background:color-mix(in srgb,var(--warn) 8%,var(--surface)); }
+  .mtt { display:flex; align-items:center; gap:10px; } .mtt b { font-size:15px; } .mx .rlogo { width:44px; height:44px; filter:drop-shadow(0 2px 6px color-mix(in srgb,var(--ac,var(--line)) 45%,transparent)); }
+  :root[data-theme="dark"] .mx .rlogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.7)) drop-shadow(0 2px 6px color-mix(in srgb,var(--ac,var(--line)) 45%,transparent)); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mx .rlogo { filter:drop-shadow(0 0 1px rgba(255,255,255,.7)) drop-shadow(0 2px 6px color-mix(in srgb,var(--ac,var(--line)) 45%,transparent)); } }
+  .mtb { display:flex; align-items:center; gap:8px; margin-top:8px; } .mtb .rbar i { width:9px; height:20px; }
+  .mx td.mc { width:14%; min-width:140px; cursor:pointer; overflow-wrap:anywhere; font-size:13px; line-height:1.35; position:relative; padding-left:22px; }
+  .mx td.mc:hover { background:color-mix(in srgb,var(--ac,var(--line)) 20%,var(--surface)); }
+  .mx td.mc::before { content:""; position:absolute; left:10px; top:16px; width:7px; height:7px; border-radius:50%; background:var(--ink3); }
+  .mx td.s-ok::before { background:var(--ok); } .mx td.s-exp::before { background:var(--warn); }
   .mx td .open { color:var(--warn); font-weight:600; } .mx td .rum { font-size:12px; }
   .mx td .tagr { font-size:9px; }
   .rum { margin-top:3px; font-size:13px; } .rumo { color:var(--warn); font-size:11px; margin-left:4px; white-space:nowrap; }
