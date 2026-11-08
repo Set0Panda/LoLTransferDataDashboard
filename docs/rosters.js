@@ -190,6 +190,7 @@
   const rankOf = t => rankIdx[t.lg + "|" + norm(t.name)];
 
   // ---- view ----
+  let VIEW = "cards"; try { VIEW = localStorage.getItem("radar.rosterView") === "matrix" ? "matrix" : "cards"; } catch (e) {}
   const S = { lg: null, q: "", only: false };
   const leaguesWithPlayers = [...new Set(T.filter(t => byTeam[t.i].length && t.i === canon[t.i] && t.lg !== "(no league)").map(t => t.reg + "|" + t.lg))]
     .sort((a, b) => { const [ra, la] = a.split("|"), [rb, lb] = b.split("|"); return REGS.indexOf(ra) - REGS.indexOf(rb) || (TOP_LG[la] ? 0 : 1) - (TOP_LG[lb] ? 0 : 1) || la.localeCompare(lb); });
@@ -231,7 +232,7 @@
     const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; const k = t.i + "|" + norm(p.name), aw = rumAway.get(k), ou = rumOut.get(k); if (aw || ou) hasRumor = true;
       const mark = aw ? ` <span class="rumo" title="Rumour: ${esc(T[aw.to].name)}">&rarr; ${esc(T[aw.to].name)} (rumour)</span>` : ou ? ` <span class="rumo">may leave (rumour)</span>` : "";
       return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${mark}${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
-    const sts = [];
+    const sts = [], cells = {};
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
       const signed = inRole.filter(p => p.ms != null && p.ms > cut);
@@ -246,6 +247,7 @@
       if (expiring.length) main += `<div class="ex">${signed.length || joins.length ? "also " : ""}expiring: ${expiring.map(nm).join(", ")}</div>`;
       if (noDate.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
       rumIn[t.i].filter(r => r.role === role).forEach(r => { hasRumor = true; main += rumLine(t.i, r); });
+      cells[role] = { st, html: main };
       return `<div class="rrow" data-s="${st}"><span class="rl">${role}</span><div>${main}</div></div>`;
     }).join("");
     const cs = coaches[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)]);
@@ -256,6 +258,7 @@
     if (cNo.length) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
     rumIn[t.i].filter(r => r.role === "COACH").forEach(r => { hasRumor = true; coachMain += rumLine(t.i, r); });
     if (!coachMain) coachMain = `<div class="ex">${hasCoachData[t.reg] ? "none listed" : "not in this region's sheet"}</div>`;
+    cells.COACH = { st: "", html: coachMain };
     const coachHtml = `<div class="rrow"><span class="rl">COACH</span><div>${coachMain}</div></div>`;
     const rumOther = rumIn[t.i].filter(r => !STARTERS.includes(r.role) && r.role !== "COACH");
     rumOther.forEach(() => { hasRumor = true; });
@@ -266,14 +269,26 @@
     const teamUniq = uniq(best(teamItems[t.i])), news = teamUniq.slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
     const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${news.some(isScoop) ? ' <span class="rnote">&middot; includes unconfirmed reports from sources</span>' : ""}${teamUniq.length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamUniq.length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
-    PARTS[t.i] = { slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
+        const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
+    PARTS[t.i] = { cells, bar, rumOther, hasRumor, slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
-    const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
-    return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
+        return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
       <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${rumOtherHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
+  const MCOLS = ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT", "COACH"];
+  function matrix(cards) {
+    const rows = cards.map(c => {
+      const t = c.t, P = PARTS[t.i], rk = rankOf(t);
+      const other = P.rumOther.length ? P.rumOther.map(r => rumLine(t.i, r)).join("") : "";
+      return `<tr class="mrow" id="rc-${t.i}" data-n="${esc(t.name)}"><th class="mt" scope="row" data-tm="${t.i}" title="Open team panel">
+        <div class="mtt">${logo(t)}<div><b>${esc(t.name)}</b><div class="rmeta">${rk ? `<span class="rrank">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div></div>
+        <div class="mtb">${P.bar}<span class="ex">${c.projected}/5</span></div>${other}</th>
+        ${MCOLS.map(r => `<td class="mc s-${P.cells[r].st || "n"}" data-tm="${t.i}">${P.cells[r].html}</td>`).join("")}</tr>`;
+    }).join("");
+    return `<div class="mwrap"><table class="mx"><thead><tr><th>TEAM</th>${MCOLS.map(r => `<th>${r}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
   function render() {
     if (!next) { box.innerHTML = '<div class="card empty">No aligned end date left in the calendar.</div>'; return; }
     const [reg, lg] = S.lg.split("|");
@@ -283,7 +298,7 @@
       .sort((a, b) => { const ra = rankOf(a), rb = rankOf(b); return q ? a.name.localeCompare(b.name) : ((ra ? ra.rank : 999) - (rb ? rb.rank : 999)) || a.name.localeCompare(b.name); });
     let cards = teams.map(card);
     if (S.only) cards = cards.filter(c => c.flagged);
-    const strip = (!q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.projected}/5 projected">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.projected}/5</span></button>`).join("")}</div>` : "";
+    const strip = (VIEW === "cards" && !q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.projected}/5 projected">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.projected}/5</span></button>`).join("")}</div>` : "";
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
     const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Signings and releases since then aren't here unless you add them in <code>roster-overrides.js</code>.</div>` : "";
     const sv = ST.leagues && ST.leagues[lg];
@@ -293,15 +308,17 @@
       return `<div class="row">${regLogo(g)}${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;
     }).join("");
     box.innerHTML = `<section class="filters"><div class="row"><input class="search" id="rq" type="search" placeholder="Search a team or player across all leagues…" value="${esc(S.q)}" aria-label="Search rosters">
-      <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button></div>${sel}
+      <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button>
+      <span class="seg" role="group" aria-label="Layout"><button class="chip" data-view="cards" aria-pressed="${VIEW === "cards"}">Cards</button><button class="chip" data-view="matrix" aria-pressed="${VIEW === "matrix"}">Matrix</button></span></div>${sel}
       <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}</section>
       ${strip}
-      <div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>
+      ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>`;
     const rq = document.getElementById("rq");
     rq.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = document.getElementById("rq"); n.focus(); n.setSelectionRange(pos, pos); };
     document.getElementById("ronly").onclick = () => { S.only = !S.only; render(); };
-    box.querySelectorAll(".rcard").forEach(applyAccent);
+    box.querySelectorAll(".rcard, .mrow").forEach(applyAccent);
+    box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { VIEW = b.dataset.view; try { localStorage.setItem("radar.rosterView", VIEW); } catch (e) {} render(); });
     box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("rpulse"); setTimeout(() => el.classList.remove("rpulse"), 1400); } });
     box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; render(); });
   }
@@ -343,6 +360,7 @@
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   document.addEventListener("click", e => {
+    if (e.target.closest("a")) return;                 // real links keep working
     const o = e.target.closest("[data-tm]");
     if (o) { openDrawer(+o.dataset.tm, o.dataset.pl); return; }
     if (e.target.closest(".rdx") || e.target === back) closeDrawer();
