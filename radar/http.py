@@ -17,7 +17,11 @@ def get(url, headers=None, params=None, data=None, retries=3, timeout=20, as_jso
                 body = r.read().decode("utf-8", errors="replace")
                 return json.loads(body) if as_json else body
         except urllib.error.HTTPError as e:
-            last = e
+            try:
+                snip = e.read(160).decode('utf-8', 'replace').replace('\n', ' ')
+            except Exception:
+                snip = ''
+            last = f"{e} [{snip}]" if snip else e
             if e.code in (403, 404, 401):      # policy / auth / missing: retrying won't help
                 break
             time.sleep(1.5 * (attempt + 1))
