@@ -132,6 +132,19 @@
   .rrow .ok { color:var(--ok); } .rrow .open { color:var(--warn); font-weight:600; } .rrow .ex { color:var(--ink2); font-size:12px; }
   .pn { white-space:nowrap; }
   .rlinked { margin:-4px 0 8px; }
+  button.rflag { font:inherit; font-size:11px; cursor:pointer; line-height:1.5; } button.rflag:hover { border-color:var(--ink3); }
+  .tagbtn { font:inherit; font-size:10px; letter-spacing:.05em; font-weight:700; border:0; cursor:pointer; } .tagbtn:hover { filter:brightness(1.15); }
+  .linkbtn { font:inherit; font-size:11px; letter-spacing:0; border:0; background:none; color:var(--accent); cursor:pointer; padding:0; text-decoration:underline; }
+  .rhead[data-tm] { cursor:pointer; } .rhead[data-tm]:hover h3 { text-decoration:underline; }
+  #rd-back { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:40; }
+  #rdrawer { position:fixed; top:0; right:0; bottom:0; width:min(460px,94vw); z-index:41; background:var(--surface); border-left:3px solid var(--ac,var(--line)); padding:16px 18px 40px; overflow-y:auto; transform:translateX(100%); transition:transform .22s ease; box-shadow:-8px 0 30px rgba(0,0,0,.25); visibility:hidden; }
+  #rdrawer.open { transform:none; visibility:visible; }
+  .rdhead { display:flex; align-items:center; gap:12px; margin-bottom:8px; } .rdhead .rlogo { width:56px; height:56px; } .rdhead h3 { margin:0; font-size:18px; }
+  .rdx { margin-left:auto; align-self:flex-start; font-size:26px; line-height:1; border:0; background:none; color:var(--ink2); cursor:pointer; padding:0 4px; } .rdx:hover { color:var(--ink); }
+  .rdnews { margin-top:14px; border-top:1px solid var(--line); padding-top:10px; } .rdnews h4 { margin:10px 0 6px; font-size:13px; }
+  .rdnews ul { list-style:none; margin:0; padding:0; } .dn { padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; } .dn a { text-decoration:none; } .dn a:hover { text-decoration:underline; }
+  .pn.hl .pl { background:color-mix(in srgb, var(--warn) 30%, transparent); border-radius:4px; padding:0 4px; }
+  @media (prefers-reduced-motion: reduce) { #rdrawer { transition:none; } }
   .rflag { white-space:nowrap; font-size:11px; margin-left:6px; padding:0 6px; border-radius:6px; background:color-mix(in srgb, var(--warn) 18%, var(--surface)); color:var(--ink); text-decoration:none; border:1px solid color-mix(in srgb, var(--warn) 40%, var(--line)); }
   .tagc, .tagr { white-space:nowrap; font-size:10px; letter-spacing:.05em; font-weight:700; padding:1px 6px; border-radius:5px; }
   .tagc { background:color-mix(in srgb, var(--ok) 20%, var(--surface)); color:var(--ok); }
@@ -408,6 +421,8 @@ function showTab(name) {
 $("tabFeed").onclick = () => showTab("feed");
 $("tabRosters").onclick = () => showTab("rosters");
 </script>
+<div id="rd-back" hidden></div>
+<aside id="rdrawer" aria-hidden="true" role="dialog" aria-label="Team panel"></aside>
 <script src="contract/data.js"></script>
 <script src="contract/logos.js"></script>
 <script src="contract/roles-kr.js"></script>

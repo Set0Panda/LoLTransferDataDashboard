@@ -1,5 +1,6 @@
 """Keyword categoriser + relevance. Deliberately transparent (no ML): edit the dicts to tune."""
-import re
+import json, re
+from pathlib import Path
 
 CATEGORIES = {   # name -> (weight per hit, patterns)
     "Transfers & Rumors": (3, r"sources?:|set to (join|leave|sign|replace|remain|continue)|verbal agreement|explore options|transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"
@@ -25,8 +26,36 @@ NOISE = re.compile(
 
 SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
-LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|esports|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
-LOL_SOURCE = re.compile(r"league|lol|lck|lec|lcs|lpl|sheep|inven|dot ?esports|esports", re.I)
+def _load_lol_names():
+    """Team names and player handles from Contract Radar's data (docs/contract/data.js): a headline that names a known LoL
+    team or player is about LoL even when it carries no 'LoL' keyword (Sheep covers many games, so 'esports' alone proves nothing)."""
+    root = Path(__file__).resolve().parents[1] / "docs"
+    try:
+        txt = (root / "contract" / "data.js").read_text(encoding="utf-8")
+        teams = json.loads(re.search(r"window\.GCD_TEAMS\s*=\s*(\[.*?\]);\s*\n", txt, re.S).group(1))
+        rows = json.loads(re.search(r"window\.GCD_ROWS\s*=\s*(\[.*?\]);\s*\n", txt, re.S).group(1))
+        cw = (root / "common-words.js").read_text(encoding="utf-8")
+        common = set(re.search(r'COMMON_WORDS\s*=\s*"([^"]+)"', cw).group(1).split())
+    except Exception:
+        return None
+    names = set()
+    for t in teams:
+        n = t[2].strip()
+        names.add(n.lower())
+        short = re.sub(r"\b(esports?|gaming|team|club|e-sports|academy|youth)\b", "", n, flags=re.I).strip(" .-")
+        if len(short) >= 4: names.add(short.lower())
+        if t[3] and len(t[3]) >= 2 and t[3].upper() in ("T1", "G2", "KT", "DK", "HLE", "BLG", "TES", "JDG", "NIP", "LOUD", "KOI", "NAVI"): names.add(t[3].lower())
+    for r in rows:
+        h = (r[1] or "").strip()
+        if len(h) >= 5 and " " not in h and h.lower() not in common: names.add(h.lower())
+    names = {n for n in names if len(n) >= 2}
+    return re.compile(r"(?<![a-z0-9])(" + "|".join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r")(?![a-z0-9])", re.I)
+
+
+LOL_NAMES = _load_lol_names()
+
+LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
+LOL_SOURCE = re.compile(r"league|\blol\b|\blck\b|\blec\b|\blcs\b|\blpl\b|leaguepedia", re.I)
 LEAGUES = {"LCK": r"\blck\b", "LEC": r"\blec\b", "LCS": r"\blcs\b|\blta\b", "LPL": r"\blpl\b",
            "CBLOL": r"cblol", "LJL": r"\bljl\b", "PCS": r"\bpcs\b", "VCS": r"\bvcs\b",
            "Worlds": r"\bworlds\b", "MSI": r"\bmsi\b", "Academy/ERL": r"\berl\b|academy|lfl|superliga|prime league|ultraliga"}
@@ -43,7 +72,7 @@ def classify(item):
             # title hits count double: headlines carry the topic
             n += len(re.findall(pat, item["title"], re.I))
             scores[name] = n * w
-    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx"))
+    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx")) or bool(LOL_NAMES and LOL_NAMES.search(text))
     topic_hits = sum(1 for k in ("Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements") if k in scores)
     relevance = 0.0
     if ctx:

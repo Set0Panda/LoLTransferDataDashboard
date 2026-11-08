@@ -156,14 +156,16 @@
     } catch (e) {} };
     img.complete ? go() : (img.onload = go);
   }
-  const flag = (arr, label) => arr && arr.length ? `<a class="rflag" href="${esc(best(arr)[0].url)}" target="_blank" rel="noopener" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</a>` : "";
+  const flag = (arr, label, ti, name) => arr && arr.length ? `<button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(name)}" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</button>` : "";
+  const PARTS = {};                       // per-team HTML pieces, reused by the side panel
+  const ageD = i => Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS));
 
   function card(t) {
     const rk = rankOf(t);
     const base = byTeam[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)] || false);
     const gone = byTeam[t.i].concat(coaches[t.i]).filter(p => leaving[t.i + "|" + norm(p.name)]);
     let projected = 0, hasRumor = false, open = false;
-    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pn"><span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions")}</span>`; };
+    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
     const sts = [];
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
@@ -193,11 +195,12 @@
     const leftHtml = gone.length ? `<div class="rrow"><span class="rl">LEAVING</span><div class="ex">${gone.map(p => { const o = leaving[t.i + "|" + norm(p.name)]; return esc(p.name) + (o.to ? " → " + esc(o.to) : ""); }).join(", ")} <span class="tagc">CONFIRMED</span></div></div>` : "";
     const news = best(teamItems[t.i]).slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
-    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
+    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${teamItems[t.i].length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamItems[t.i].length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
+    PARTS[t.i] = { slots, coachHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
     const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
-    return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? '<div class="rlinked"><span class="tagr">LINKED IN NEWS</span></div>' : ""}${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
+    return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
@@ -232,6 +235,43 @@
     box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("rpulse"); setTimeout(() => el.classList.remove("rpulse"), 1400); } });
     box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; render(); });
   }
-  window.Rosters = { render, rebuild() { buildMentions(); render(); } };
+  // ---- side panel: team + roster + every news item that names the team or a player ----
+  const dr = document.getElementById("rdrawer"), back = document.getElementById("rd-back");
+  let DR = null, lastFocus = null;
+  const newsLi = i => `<li class="dn"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="ex">${esc(i.source)} · ${ageD(i)}d · ${esc(i.category)}</div></li>`;
+  const uniq = arr => { const seen = new Set(); return arr.filter(i => { const k = norm(i.title).replace(/[^a-z0-9]/g, ""); return seen.has(k) ? false : (seen.add(k), true); }); };   // same story via two links
+  function paint() {
+    if (!dr || !DR) return;
+    const t = T[DR.ti]; if (!PARTS[t.i]) card(t);
+    const P = PARTS[t.i], rk = rankOf(t), pl = DR.pl;
+    const mine = pl && playerItems.get(t.i + "|" + norm(pl)) ? uniq(best(playerItems.get(t.i + "|" + norm(pl)))) : [];
+    const mineT = new Set(mine.map(i => norm(i.title))), all = uniq(best(teamItems[t.i])).filter(i => !mineT.has(norm(i.title)));
+    dr.style.setProperty("--ac", accCache[t.name] || "var(--line)");
+    dr.innerHTML = `<div class="rdhead">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${esc(t.lg)}${rk ? ` · <span class="rrank">#${rk.rank}</span> ${esc(rk.rec)}` : ""}</div></div><button type="button" class="rdx" aria-label="Close panel">&times;</button></div>
+      <p class="rsum">${P.projected} of 5 starting slots projected for ${new Date(next).getUTCFullYear() + 1}</p>
+      ${P.slots}${P.coachHtml}${P.subHtml}${P.leftHtml}
+      <div class="rdnews">${pl ? `<h4>Mentions of ${esc(pl)} (${mine.length})</h4><ul>${mine.map(newsLi).join("") || '<li class="ex">None in the last 45 days.</li>'}</ul>` : ""}
+        <h4>${pl ? "Other team news" : "Team news"} (${all.length})</h4>${P.rumors ? `<div class="rdr">${P.rumors}</div>` : ""}<ul>${all.map(newsLi).join("") || '<li class="ex">No headlines name this team or its players yet.</li>'}</ul>
+        <p class="hint">Headlines come from the feed and are matched by team name and player handle, so a hit can be about a different player with the same handle.</p></div>`;
+    dr.querySelectorAll(".pn").forEach(e => { if (pl && e.dataset.h === norm(pl)) e.classList.add("hl"); });
+    const hl = dr.querySelector(".pn.hl"); if (hl) hl.scrollIntoView({ block: "center" });
+  }
+  function openDrawer(ti, pl) {
+    if (!dr) return;
+    lastFocus = document.activeElement; DR = { ti, pl: pl || null }; paint();
+    dr.classList.add("open"); back.hidden = false; dr.setAttribute("aria-hidden", "false");
+    const x = dr.querySelector(".rdx"); if (x) x.focus();
+  }
+  function closeDrawer() {
+    if (!dr) return; DR = null; dr.classList.remove("open"); back.hidden = true; dr.setAttribute("aria-hidden", "true");
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.addEventListener("click", e => {
+    const o = e.target.closest("[data-tm]");
+    if (o) { openDrawer(+o.dataset.tm, o.dataset.pl); return; }
+    if (e.target.closest(".rdx") || e.target === back) closeDrawer();
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && DR) closeDrawer(); });
+  window.Rosters = { render, rebuild() { buildMentions(); render(); if (DR) paint(); } };
   render();
 })();

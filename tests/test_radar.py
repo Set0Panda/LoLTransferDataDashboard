@@ -50,7 +50,7 @@ def test_sheep_parse_and_hint():
           '<url><loc>https://www.sheepesports.com/de/articles/y/de</loc><lastmod>2999-01-01T00:00:00.000Z</lastmod></url>'
           '<url><loc>https://www.sheepesports.com/en/articles/old/en</loc><lastmod>2020-01-01T00:00:00.000Z</lastmod></url>')
     assert sheep.recent_urls(sm, 14) == ["https://www.sheepesports.com/en/articles/x/en"]
-    c, tags, rel = classify.classify(item(source_type="newsletter", source_name="Sheep Esports", title="Anything", category_hint="Transfers & Rumors"))
+    c, tags, rel = classify.classify(item(source_type="newsletter", source_name="Sheep Esports", title="Anything", category_hint="Transfers & Rumors", lol_ctx=True))
     assert c == "Transfers & Rumors" and rel >= .7
 
 
