@@ -4,18 +4,5 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          UA="Mozilla/5.0 (compatible; lol-transfer-radar)"
-          titles() { python3 -c "
-import sys,re
-x=sys.stdin.read()
-for m in re.finditer(r'<item>.*?</item>',x,re.S):
-    t=re.search(r'<title>(.*?)</title>',m.group(0),re.S); d=re.search(r'<pubDate>(.*?)</pubDate>',m.group(0))
-    print('  -',re.sub(r'<!\[CDATA\[|\]\]>','',t.group(1))[:110],'|',(d.group(1)[5:16] if d else ''))
-" | head -${2:-12}; }
-          for q in "league of legends (transfer OR rumor OR free agent OR signs OR joins) when:3d" "LCK OR LEC OR LCS OR LPL roster 2027 when:3d" "leagueoflegends esports contract extension when:3d"; do
-            echo "== GNEWS: $q"; curl -s -m 25 -A "$UA" "https://news.google.com/rss/search?q=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$q")&hl=en-US&gl=US&ceid=US:en" | titles
-          done
-          echo "== HOTSPAWN"; curl -s -m 25 -A "$UA" https://www.hotspawn.com/feed | titles x 10
-          echo "== BING"; curl -s -m 25 -A "$UA" "https://www.bing.com/news/search?q=league+of+legends+roster+transfer&format=rss" | titles
-          echo "== LOLESPORTS news links"; curl -s -m 25 -A "$UA" https://lolesports.com/en-US/news | grep -o '/en-US/news/[a-z0-9-]*' | sort -u | head -12
+      - uses: actions/checkout@v5
+      - run: python3 scripts/probe.py
