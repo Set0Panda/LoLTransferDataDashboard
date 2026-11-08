@@ -157,6 +157,7 @@
     img.complete ? go() : (img.onload = go);
   }
   const flag = (arr, label, ti, name) => arr && arr.length ? `<button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(name)}" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</button>` : "";
+  const showTitle = t => { const x = String(t || "").replace(/^\s*sources?:\s*/i, ""); return x.charAt(0).toUpperCase() + x.slice(1); };
   const PARTS = {};                       // per-team HTML pieces, reused by the side panel
   const ageD = i => Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS));
 
@@ -195,7 +196,7 @@
     const leftHtml = gone.length ? `<div class="rrow"><span class="rl">LEAVING</span><div class="ex">${gone.map(p => { const o = leaving[t.i + "|" + norm(p.name)]; return esc(p.name) + (o.to ? " → " + esc(o.to) : ""); }).join(", ")} <span class="tagc">CONFIRMED</span></div></div>` : "";
     const news = best(teamItems[t.i]).slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
-    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${teamItems[t.i].length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamItems[t.i].length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
+    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${teamItems[t.i].length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamItems[t.i].length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
     PARTS[t.i] = { slots, coachHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
     const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
@@ -238,7 +239,7 @@
   // ---- side panel: team + roster + every news item that names the team or a player ----
   const dr = document.getElementById("rdrawer"), back = document.getElementById("rd-back");
   let DR = null, lastFocus = null;
-  const newsLi = i => `<li class="dn"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="ex">${esc(i.source)} · ${ageD(i)}d · ${esc(i.category)}</div></li>`;
+  const newsLi = i => `<li class="dn"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a><div class="ex">${esc(i.source)} · ${ageD(i)}d · ${esc(i.category)}</div></li>`;
   const uniq = arr => { const seen = new Set(); return arr.filter(i => { const k = norm(i.title).replace(/[^a-z0-9]/g, ""); return seen.has(k) ? false : (seen.add(k), true); }); };   // same story via two links
   function paint() {
     if (!dr || !DR) return;

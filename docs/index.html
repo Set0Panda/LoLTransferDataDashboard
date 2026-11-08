@@ -216,6 +216,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3)+"k" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(Math.round(n));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 let NOW = Date.now(); const DAY = 864e5;
+const showTitle = t => { const x = String(t || "").replace(/^\s*sources?:\s*/i, ""); return x.charAt(0).toUpperCase() + x.slice(1); };   // Sheep prefixes every scoop with "Sources:"; display only
 function prep() { D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.hay = norm([i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); }); }
 prep();
 
@@ -347,7 +348,7 @@ function renderFeed(items) {
   $("feedtitle").textContent = S.sort==="quality" ? "Highest quality" : S.sort==="hot" ? "Most engagement" : "What's new";
   $("feedcount").textContent = `${items.length} item${items.length===1?"":"s"}`;
   $("feed").innerHTML = sorted.slice(0,S.shown).map(i => `<article class="item">
-    <div><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a></h3>
+    <div><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a></h3>
     <div class="meta"><span><i class="dot" style="background:var(--${i.type})"></i> ${TNAME[i.type]} · ${esc(i.source)}</span><span>${ago(i.t)}</span>
     <span>${metricStr(i)}</span><span class="tag">${esc(i.category)}</span>${i.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
     <div class="q" data-tip="Engagement ${i.breakdown.engagement} · Relevance ${i.breakdown.relevance} · Authority ${i.breakdown.authority} · Freshness ${i.breakdown.freshness}"><b>${i.quality}</b><small>${i.tier}</small></div>
