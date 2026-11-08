@@ -4,30 +4,18 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Try candidate sources from a runner
-        run: |
+      - run: |
           UA="Mozilla/5.0 (compatible; lol-transfer-radar)"
-          while read -r name url; do
-            code=$(curl -s -m 25 -A "$UA" -o /tmp/o -w "%{http_code} %{size_download}B %{content_type}" "$url")
-            echo "== $name -> $code"; head -c 160 /tmp/o | tr '\n' ' '; echo
-          done <<'LIST'
-          bsky-search https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=zeus+hanwha&limit=3
-          bsky-feed-sheep https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=sheepesports.com&limit=3
-          liquipedia-transfers https://liquipedia.net/leagueoflegends/Portal:Transfers
-          leaguepedia-transfers https://lol.fandom.com/wiki/Special:RunQuery/Transfers
-          lolesports-news https://lolesports.com/en-US/news
-          riot-news-rss https://www.leagueoflegends.com/en-us/news/rss.xml
-          gnews-lol-transfer https://news.google.com/rss/search?q=league+of+legends+transfer+OR+free+agency+when:7d&hl=en-US&gl=US&ceid=US:en
-          gnews-lck-roster https://news.google.com/rss/search?q=LCK+roster+OR+LEC+roster+OR+LPL+roster+when:7d&hl=en-US&gl=US&ceid=US:en
-          bing-news https://www.bing.com/news/search?q=league+of+legends+transfer&format=rss
-          dotesports-lol https://dotesports.com/league-of-legends/feed
-          invenglobal https://www.invenglobal.com/rss/lol
-          esportsinsider https://esportsinsider.com/feed
-          hotspawn https://www.hotspawn.com/feed
-          thegamer-lol https://www.thegamer.com/tag/league-of-legends/feed/
-          ggrecon-lol https://ggrecon.com/feed/
-          mastodon-search https://mastodon.social/api/v2/search?q=league+of+legends&type=statuses&limit=3
-          hn-algolia https://hn.algolia.com/api/v1/search_by_date?query=league+of+legends&tags=story&hitsPerPage=3
-          twitch-none https://www.twitch.tv/directory/category/league-of-legends
-          podcast-rss https://feeds.megaphone.fm/lolesports
-          LIST
+          titles() { python3 -c "
+import sys,re
+x=sys.stdin.read()
+for m in re.finditer(r'<item>.*?</item>',x,re.S):
+    t=re.search(r'<title>(.*?)</title>',m.group(0),re.S); d=re.search(r'<pubDate>(.*?)</pubDate>',m.group(0))
+    print('  -',re.sub(r'<!\[CDATA\[|\]\]>','',t.group(1))[:110],'|',(d.group(1)[5:16] if d else ''))
+" | head -${2:-12}; }
+          for q in "league of legends (transfer OR rumor OR free agent OR signs OR joins) when:3d" "LCK OR LEC OR LCS OR LPL roster 2027 when:3d" "leagueoflegends esports contract extension when:3d"; do
+            echo "== GNEWS: $q"; curl -s -m 25 -A "$UA" "https://news.google.com/rss/search?q=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$q")&hl=en-US&gl=US&ceid=US:en" | titles
+          done
+          echo "== HOTSPAWN"; curl -s -m 25 -A "$UA" https://www.hotspawn.com/feed | titles x 10
+          echo "== BING"; curl -s -m 25 -A "$UA" "https://www.bing.com/news/search?q=league+of+legends+roster+transfer&format=rss" | titles
+          echo "== LOLESPORTS news links"; curl -s -m 25 -A "$UA" https://lolesports.com/en-US/news | grep -o '/en-US/news/[a-z0-9-]*' | sort -u | head -12
