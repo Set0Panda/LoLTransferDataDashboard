@@ -22,7 +22,7 @@ NOISE = re.compile(
     r"|\bvs\.?\b.*\||\d\s?[–-]\s?\d\s*\||matches, roster and results"
     r"|valorant|\bvct\b|\bcs2?\b|counter-strike|\bcsgo\b|rocket league|\brlcs\b|game changers|dota|overwatch|apex legends"
     r"|fortnite|\btft\b|teamfight tactics|wild rift|발로란트|瓦罗兰特|\biem\b|\bblast\b|\bpgl\b|mobile legends|\bmlbb\b"
-    r"|call of duty|rainbow six", re.I)
+    r"|call of duty|rainbow six|duelist|initiator|\bigl\b|in-game leader|entry fragger|\bawper\b|\bvlr\b|\bhltv\b|vct ", re.I)
 
 SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
@@ -45,8 +45,30 @@ def _load_lol_names():
     return re.compile(r"(?<![a-z0-9])(" + "|".join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r")(?![a-z0-9])", re.I)
 
 
+def _load_team_pat():
+    """Team names, stripped from a headline before player-handle matching, so a handle that happens to equal part of an org name
+    ("XI LAI" the LoL sub vs Xi Lai Gaming the Valorant roster) can't make a Valorant/CS story look like League."""
+    try:
+        txt = (Path(__file__).resolve().parents[1] / "docs" / "contract" / "data.js").read_text(encoding="utf-8")
+        teams = json.loads(re.search(r"window\.GCD_TEAMS\s*=\s*(\[.*?\]);\s*\n", txt, re.S).group(1))
+    except Exception:
+        return None
+    names = sorted({(t[2] or "").strip() for t in teams if len((t[2] or "").strip()) >= 4}, key=len, reverse=True)
+    return re.compile(r"(?<![A-Za-z0-9])(" + "|".join(re.escape(n) for n in names) + r")(?![A-Za-z0-9])", re.I) if names else None
+
+
+# "Xi Lai Gaming", "T1 Esports Academy", "Team Vitality": capitalised phrases that are clearly org names, even when the org isn't in the contract data
+ORG_PAT = re.compile(r"(?:\b[A-Z0-9][\w.&']*\s+){1,3}(?:Gaming|Esports?|eSports|Club|Academy|Gang|Pirates|Rising|Squad|Kings|Gaming Club)\b|\bTeam\s+[A-Z][\w.]*")
+
+
+def _strip_orgs(text):
+    text = ORG_PAT.sub(" ", text)
+    return TEAM_PAT.sub(" ", text) if TEAM_PAT else text
+
+
 PLAYER_STOP = {"coach", "analyst", "staff", "team", "sub", "tactical", "cypher", "sage", "jett", "neon", "fade", "omen", "viper", "reyna", "raze", "brimstone", "killjoy", "skye", "yoru", "astra", "chamber", "gekko", "iso", "clove", "vyse", "tejo", "waylay"}   # Valorant agent names etc.
 LOL_NAMES = _load_lol_names()
+TEAM_PAT = _load_team_pat()
 
 LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\blfl\b|\blcp\b|\blla\b|\btcl\b|prime league|ultraliga|superliga|\blvp\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
 LOL_SOURCE = re.compile(r"league|\blol\b|\blck\b|\blec\b|\blcs\b|\blpl\b|leaguepedia", re.I)
@@ -66,7 +88,7 @@ def classify(item):
             # title hits count double: headlines carry the topic
             n += len(re.findall(pat, item["title"], re.I))
             scores[name] = n * w
-    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx")) or bool(LOL_NAMES and LOL_NAMES.search(text))
+    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx")) or bool(LOL_NAMES and LOL_NAMES.search(_strip_orgs(text)))
     topic_hits = sum(1 for k in ("Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements") if k in scores)
     relevance = 0.0
     if ctx:

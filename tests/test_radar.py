@@ -117,3 +117,13 @@ def test_contract_guard_rejects_email_and_halved_region(tmp_path):
     assert g.main([str(tmp_path / "o.js"), str(tmp_path / "o.js")]) == 0
     assert g.main([str(tmp_path / "o.js"), str(tmp_path / "n.js")]) == 1        # -60%, stamp did not move
     assert g.main([str(tmp_path / "o.js"), str(tmp_path / "m.js")]) == 1        # e-mail
+
+
+def test_org_name_cannot_fake_lol_context():
+    from radar import classify
+    def rel(t, hint=None):
+        return classify.classify({"source_type": "newsletter", "source_name": "Sheep Esports", "title": t, "summary": "", "url": "u", "metrics": {}, "category_hint": hint})[2]
+    # a LoL sub is called "XI LAI": the Valorant org Xi Lai Gaming must not make this look like League
+    assert rel("Sources: xavi8k set to join Xi Lai Gaming for the 2027 season", "Transfers & Rumors") == 0.0
+    assert rel("Sources: Mithy Set To Join G2 Esports As Head Coach For 2027", "Transfers & Rumors") >= 0.7
+    assert rel("Faker re-signs with T1") >= 0.3
