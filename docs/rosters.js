@@ -112,7 +112,66 @@
     hitTeams.forEach(ti => { if (!teamItems[ti].includes(it)) teamItems[ti].push(it); });   // named team or named player: it is that team's news
   });
   }
-  buildMentions();
+  // ---- rumoured moves, read from headlines ("X set to join TEAM as Head Coach", "TEAM pick X to replace Y", ...) ----
+  const tnorm = x => " " + norm(x).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim() + " ";
+  const RUM_DAYS = 21, ROLEWORDS = [["COACH", /coach|analyst|manager|staff/i], ["JUNGLE", /jungl/i], ["TOP", /\btop/i], ["MID", /\bmid/i], ["BOT", /\bbot|\badc|marksman/i], ["SUPPORT", /support/i]];
+  const NOT_HANDLE = new Set(["team", "players", "player", "sources", "source", "star", "standout", "star", "veteran", "rookie", "new", "former", "legend", "duo", "trio", "pair", "roster", "lineup", "coach", "analyst", "jungler", "support", "midlaner", "toplaner", "adc", "botlaner"]);
+  let rumIn = T.map(() => []), rumOut = new Map(), rumAway = new Map(), RUMITEMS = new Map();
+  function teamsIn(str, atStartCodes) {          // canonical teams named in str, earliest first
+    const hay = tnorm(str), out = [];
+    teamPat.forEach(({ t, pats }) => {
+      for (const p of pats) {
+        const code = typeof p !== "string", needle = tnorm(code ? p.code : p);
+        if (code ? !(atStartCodes && hay.startsWith(needle)) : (p.length < 4 || !hay.includes(needle))) continue;
+        out.push({ ti: t.i, at: code ? 0 : hay.indexOf(needle), len: needle.length }); break;
+      }
+    });
+    return out.sort((a, b) => a.at - b.at || b.len - a.len);
+  }
+  const handleOf = str => { const w = String(str || "").replace(/[“”"'‘’]/g, "").trim().split(/\s+/).pop().replace(/[.,;:!?]+$/, ""); return /^[A-Za-z0-9ø.'-]{2,16}$/.test(w) && !NOT_HANDLE.has(w.toLowerCase()) ? w : null; };
+  const roleFrom = str => { for (const [r, re] of ROLEWORDS) if (re.test(str || "")) return r; return ""; };
+  function buildRumours() {
+    rumIn = T.map(() => []); rumOut = new Map(); rumAway = new Map(); RUMITEMS = new Map();
+    const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo) && NOW - Date.parse(i.published || i.seen) < RUM_DAYS * MS);
+    const addIn = (name, ti, role, fromTi, it) => {
+      const h = norm(name), cand = handleIdx.get(h) || [];
+      if (!role) { const c = cand.find(x => STARTERS.includes(x.p.role) || x.p.role === "COACH"); role = c ? c.p.role : ""; }
+      const own = cand.find(c => c.ti === ti); if (own && own.p.ms != null && own.p.ms > cut) return;                    // already signed there on the sheet
+      if (incoming[ti].some(x => norm(x.name) === h)) return;                                                         // already confirmed in overrides
+      if (fromTi == null) { const c = cand.find(x => x.ti !== ti && (!role || x.p.role === role)) || cand.find(x => x.ti !== ti); if (c) fromTi = c.ti; }
+      let r = rumIn[ti].find(x => norm(x.name) === h && x.role === role);
+      if (!r) { r = { name, role, from: fromTi, items: [] }; rumIn[ti].push(r); }
+      if (!r.items.includes(it)) r.items.push(it);
+      const k = ti + "|" + h; if (!RUMITEMS.has(k)) RUMITEMS.set(k, []); if (!RUMITEMS.get(k).includes(it)) RUMITEMS.get(k).push(it);
+      if (fromTi != null && fromTi !== ti) { const ak = fromTi + "|" + h; if (!rumAway.has(ak)) rumAway.set(ak, { to: ti, items: [] }); if (!rumAway.get(ak).items.includes(it)) rumAway.get(ak).items.push(it); }
+    };
+    const addOut = (name, ti, it) => { const k = ti + "|" + norm(name); if (!rumOut.has(k)) rumOut.set(k, []); if (!rumOut.get(k).includes(it)) rumOut.get(k).push(it); };
+    items.forEach(it => {
+      const raw = it.title.replace(/^\s*sources?:\s*/i, "").trim(), scoop = /^\s*sources?:|set to|reportedly|expected|rumou?r|linked|verbal agreement/i.test(it.title);
+      let m;
+      if ((m = raw.match(/^(.+?)\s+(?:is\s+|are\s+|reportedly\s+)*(?:set|expected|poised|close|likely)\s+to\s+join\s+(.+)$/i)) || (m = raw.match(/^(.+?)\s+reaches?\s+(?:a\s+)?verbal agreement with\s+(.+)$/i))) {
+        const pl = handleOf(m[1]), tm = teamsIn(m[2], true)[0]; if (!pl || !tm) return;
+        const asM = m[2].match(/\bas\s+(?:the\s+|a\s+|new\s+)*([a-z ]+?)(?:\s+(?:for|ahead|from|in|after|pending)\b|$)/i);
+        const fr = (m[2].match(/\bfrom\s+(.+)$/i) || [])[1], ft = fr ? teamsIn(fr, true)[0] : null;
+        addIn(pl, tm.ti, roleFrom(asM ? asM[1] : "") || roleFrom(m[1]), ft ? ft.ti : null, it); return;
+      }
+      if ((m = raw.match(/^(.+?)\s+(?:reportedly\s+)?replaces\s+(.+?)\s+in\s+(.+)$/i))) {
+        const pl = handleOf(m[1]), out = handleOf(m[2]), tm = teamsIn(m[3], true)[0]; if (!tm) return;
+        if (pl) addIn(pl, tm.ti, roleFrom(m[1]), null, it); if (out) addOut(out, tm.ti, it); return;
+      }
+      if (scoop && (m = raw.match(/^(.+?)\s+(?:set\s+to\s+)?part(?:s)?\s+ways\s+with\s+(.+?)(?:\s+(?:ahead|after|following|for|as|amid|in)\b.*)?$/i))) {
+        const tm = teamsIn(m[1], true)[0], pl = handleOf(m[2]); if (tm && pl) addOut(pl, tm.ti, it); return;
+      }
+      if ((m = raw.match(/^(.+?)\s+(?:pick|picks|sign|signs|target|targets)\s+(.+?)\s+(?:as|to|for|from)\b(.*)$/i))) {
+        const tm = teamsIn(m[1], true)[0], pl = handleOf(m[2]); if (!tm || !pl) return;
+        const asM = m[3].match(/^\s*(?:as\s+)?(?:the\s+|a\s+|new\s+)*([a-z ]+?)(?:\s+(?:to|for|ahead|from|in|after)\b|$)/i);
+        const rp = m[3].match(/\breplace\s+([A-Za-z0-9ø.'-]+)/i);
+        addIn(pl, tm.ti, roleFrom(m[2]) || roleFrom(m[3].startsWith(" as") || /^\s*as\b/i.test(m[3]) ? (asM ? asM[1] : "") : ""), null, it);
+        if (rp) addOut(rp[1], tm.ti, it);
+      }
+    });
+  }
+  buildMentions(); buildRumours();
   const rank = it => it.quality * Math.pow(.5, (NOW - Date.parse(it.published || it.seen)) / MS / 14);
   const best = arr => arr.slice().sort((a, b) => rank(b) - rank(a));
 
@@ -158,7 +217,9 @@
   }
   const flag = (arr, label, ti, name) => arr && arr.length ? `<button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(name)}" title="${esc(best(arr)[0].title)}">${arr.length} ${label}</button>` : "";
   const showTitle = t => { const x = String(t || "").replace(/^\s*sources?:\s*/i, ""); return x.charAt(0).toUpperCase() + x.slice(1); };
-  const PARTS = {};                       // per-team HTML pieces, reused by the side panel
+  const PARTS = {}, isScoop = i => /^\s*sources?:/i.test(i.title);
+  const nSrc = items => new Set(items.map(i => i.source)).size;
+  const rumLine = (ti, r, tag = true) => `<div class="rum">${tag ? '<span class="tagr">RUMOUR</span> ' : ""}<span class="pl">${esc(r.name)}</span>${r.from != null ? ` <span class="ex">from ${esc(T[r.from].name)}</span>` : ""} <button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(r.name)}">${r.items.length} ${r.items.length === 1 ? "report" : "reports"}</button></div>`;                       // per-team HTML pieces, reused by the side panel
   const ageD = i => Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS));
 
   function card(t) {
@@ -166,7 +227,9 @@
     const base = byTeam[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)] || false);
     const gone = byTeam[t.i].concat(coaches[t.i]).filter(p => leaving[t.i + "|" + norm(p.name)]);
     let projected = 0, hasRumor = false, open = false;
-    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
+    const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; const k = t.i + "|" + norm(p.name), aw = rumAway.get(k), ou = rumOut.get(k); if (aw || ou) hasRumor = true;
+      const mark = aw ? ` <span class="rumo" title="Rumour: ${esc(T[aw.to].name)}">&rarr; ${esc(T[aw.to].name)} (rumour)</span>` : ou ? ` <span class="rumo">may leave (rumour)</span>` : "";
+      return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${mark}${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
     const sts = [];
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
@@ -181,6 +244,7 @@
       if (!signed.length && !joins.length) { open = true; main += `<div class="open">Open</div>`; }
       if (expiring.length) main += `<div class="ex">${signed.length || joins.length ? "also " : ""}expiring: ${expiring.map(nm).join(", ")}</div>`;
       if (noDate.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
+      rumIn[t.i].filter(r => r.role === role).forEach(r => { hasRumor = true; main += rumLine(t.i, r); });
       return `<div class="rrow" data-s="${st}"><span class="rl">${role}</span><div>${main}</div></div>`;
     }).join("");
     const cs = coaches[t.i].filter(p => !leaving[t.i + "|" + norm(p.name)]);
@@ -189,19 +253,23 @@
     coachMain += cSigned.map(p => `<div>${nm(p)} <span class="ok">to ${esc(endYear(p))}</span></div>`).join("");
     if (cExp.length) coachMain += `<div class="ex">expiring: ${cExp.map(nm).join(", ")}</div>`;
     if (cNo.length) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
+    rumIn[t.i].filter(r => r.role === "COACH").forEach(r => { hasRumor = true; coachMain += rumLine(t.i, r); });
     if (!coachMain) coachMain = `<div class="ex">${hasCoachData[t.reg] ? "none listed" : "not in this region's sheet"}</div>`;
     const coachHtml = `<div class="rrow"><span class="rl">COACH</span><div>${coachMain}</div></div>`;
+    const rumOther = rumIn[t.i].filter(r => !STARTERS.includes(r.role) && r.role !== "COACH");
+    rumOther.forEach(() => { hasRumor = true; });
+    const rumOtherHtml = rumOther.length ? `<div class="rrow"><span class="rl">RUMOUR</span><div>${rumOther.map(r => rumLine(t.i, r, false)).join("")}</div></div>` : "";
     const subs = base.filter(p => !STARTERS.includes(p.role));
     const subHtml = subs.length ? `<div class="rrow"><span class="rl">OTHER</span><div class="ex">${subs.map(p => esc(p.name) + (p.ms != null ? (p.ms > cut ? ` (to ${esc(endYear(p))})` : " (expiring)") : "")).join(", ")}</div></div>` : "";
     const leftHtml = gone.length ? `<div class="rrow"><span class="rl">LEAVING</span><div class="ex">${gone.map(p => { const o = leaving[t.i + "|" + norm(p.name)]; return esc(p.name) + (o.to ? " → " + esc(o.to) : ""); }).join(", ")} <span class="tagc">CONFIRMED</span></div></div>` : "";
     const news = best(teamItems[t.i]).slice(0, 3);
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
-    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${teamItems[t.i].length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamItems[t.i].length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
-    PARTS[t.i] = { slots, coachHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
+    const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${news.some(isScoop) ? ' <span class="rnote">&middot; includes unconfirmed reports from sources</span>' : ""}${teamItems[t.i].length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamItems[t.i].length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
+    PARTS[t.i] = { slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
     const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
     return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p>${hasRumor ? `<div class="rlinked"><button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button></div>` : ""}${slots}${coachHtml}${rumOtherHtml}${subHtml}${leftHtml}${newsHtml}</article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
@@ -245,7 +313,7 @@
     if (!dr || !DR) return;
     const t = T[DR.ti]; if (!PARTS[t.i]) card(t);
     const P = PARTS[t.i], rk = rankOf(t), pl = DR.pl;
-    const mine = pl && playerItems.get(t.i + "|" + norm(pl)) ? uniq(best(playerItems.get(t.i + "|" + norm(pl)))) : [];
+    const mk = t.i + "|" + norm(pl || ""), mine = pl ? uniq(best((playerItems.get(mk) || []).concat((RUMITEMS.get(mk) || []).filter(i => !(playerItems.get(mk) || []).includes(i))))) : [];
     const mineT = new Set(mine.map(i => norm(i.title))), all = uniq(best(teamItems[t.i])).filter(i => !mineT.has(norm(i.title)));
     let note = "";
     if (mine.length) {              // the sheet can lag: when the headlines mostly name another team, say so
@@ -259,7 +327,7 @@
       <p class="rsum">${P.projected} of 5 starting slots projected for ${new Date(next).getUTCFullYear() + 1}</p>
       ${P.slots}${P.coachHtml}${P.subHtml}${P.leftHtml}
       <div class="rdnews">${pl ? `<h4>Mentions of ${esc(pl)} (${mine.length})</h4>${note}<ul>${mine.map(newsLi).join("") || '<li class="ex">None in the last 45 days.</li>'}</ul>` : ""}
-        <h4>${pl ? "Other team news" : "Team news"} (${all.length})</h4>${P.rumors ? `<div class="rdr">${P.rumors}</div>` : ""}<ul>${all.map(newsLi).join("") || '<li class="ex">No transfer, contract or roster headlines name this team or its players in the last 45 days. Match coverage is filtered out of the feed.</li>'}</ul>
+        <h4>${pl ? "Other team news" : "Team news"} (${all.length})${all.concat(mine).some(isScoop) ? ' <span class="rnote">&middot; includes unconfirmed reports from sources</span>' : ""}</h4>${P.rumors ? `<div class="rdr">${P.rumors}</div>` : ""}<ul>${all.map(newsLi).join("") || '<li class="ex">No transfer, contract or roster headlines name this team or its players in the last 45 days. Match coverage is filtered out of the feed.</li>'}</ul>
         <p class="hint">Headlines come from the feed and are matched by team name and player handle, so a hit can be about a different player with the same handle. Only moves, contracts and rosters are kept: match results and previews are filtered out.</p></div>`;
     dr.querySelectorAll(".pn").forEach(e => { if (pl && e.dataset.h === norm(pl)) e.classList.add("hl"); });
     const hl = dr.querySelector(".pn.hl"); if (hl) hl.scrollIntoView({ block: "center" });
@@ -280,6 +348,6 @@
     if (e.target.closest(".rdx") || e.target === back) closeDrawer();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && DR) closeDrawer(); });
-  window.Rosters = { render, rebuild() { buildMentions(); render(); if (DR) paint(); } };
+  window.Rosters = { render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
   render();
 })();
