@@ -71,6 +71,9 @@ LOL_NAMES = _load_lol_names()
 TEAM_PAT = _load_team_pat()
 
 LOL_CONTEXT = re.compile(r"league of legends|\blol\b|lolesports|\blck\b|\blec\b|\blcs\b|\blta\b|\blpl\b|cblol|\bljl\b|\bpcs\b|\bvcs\b|\blfl\b|\blcp\b|\blla\b|\btcl\b|prime league|ultraliga|superliga|\blvp\b|\bworlds\b|\bmsi\b|riot games|riot api|leaguepedia|summoner|롤드컵|리그 ?오브 ?레전드|\b롤\b|페이커|英雄联盟|全球总决赛|世界赛|电竞", re.I)
+# Role words only League uses. A LoL team name alone isn't enough (G2, Fnatic, FURIA, LOUD, NRG... field Valorant/CS rosters too),
+# but a team name next to one of these is a League story even when no player handle is named.
+LOL_ROLE = re.compile(r"\bjungl(?:e|er|ers)\b|\bmid ?laner|\btop ?laner|\bad ?c\b|\bbot ?laner|\bbottom lane|\bsupport player|\bsummoner", re.I)
 LOL_SOURCE = re.compile(r"league|\blol\b|\blck\b|\blec\b|\blcs\b|\blpl\b|leaguepedia", re.I)
 LEAGUES = {"LCK": r"\blck\b", "LEC": r"\blec\b", "LCS": r"\blcs\b|\blta\b", "LPL": r"\blpl\b",
            "CBLOL": r"cblol", "LJL": r"\bljl\b", "PCS": r"\bpcs\b", "VCS": r"\bvcs\b",
@@ -88,7 +91,7 @@ def classify(item):
             # title hits count double: headlines carry the topic
             n += len(re.findall(pat, item["title"], re.I))
             scores[name] = n * w
-    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx")) or bool(LOL_NAMES and LOL_NAMES.search(_strip_orgs(text)))
+    ctx = bool(LOL_CONTEXT.search(text)) or bool(LOL_SOURCE.search(item["source_name"])) or bool(item.get("lol_ctx")) or bool(LOL_NAMES and LOL_NAMES.search(_strip_orgs(text))) or bool(TEAM_PAT and LOL_ROLE.search(text) and TEAM_PAT.search(text))
     topic_hits = sum(1 for k in ("Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements") if k in scores)
     relevance = 0.0
     if ctx:

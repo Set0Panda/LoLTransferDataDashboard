@@ -127,3 +127,12 @@ def test_org_name_cannot_fake_lol_context():
     assert rel("Sources: xavi8k set to join Xi Lai Gaming for the 2027 season", "Transfers & Rumors") == 0.0
     assert rel("Sources: Mithy Set To Join G2 Esports As Head Coach For 2027", "Transfers & Rumors") >= 0.7
     assert rel("Faker re-signs with T1") >= 0.3
+
+
+def test_team_name_plus_lol_role_counts_as_lol():
+    from radar import classify
+    def rel(t):
+        return classify.classify({"source_type": "newsletter", "source_name": "Sheep Esports", "title": t, "summary": "", "url": "u", "metrics": {}, "category_hint": None})[2]
+    assert rel("Fnatic signs new jungler for 2027") >= 0.3          # LoL team + LoL-only role word
+    assert rel("Sentinels sign new duelist") == 0.0                  # Valorant
+    assert rel("FURIA sign new IGL") == 0.0                          # team name alone / CS-Valorant word is not enough

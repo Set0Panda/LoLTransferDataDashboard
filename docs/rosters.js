@@ -303,6 +303,8 @@
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
     const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Signings and releases since then aren't here unless you add them in <code>roster-overrides.js</code>.</div>` : "";
     const sv = ST.leagues && ST.leagues[lg];
+    const sAge = ST.asOf ? Math.floor((NOW - Date.parse(ST.asOf + "T00:00:00Z")) / MS) : null;
+    const sWarn = sAge != null && sAge > 21 && !q ? `<div class="rwarn"><b>League rankings are ${sAge} days old</b> (as of ${esc(ST.asOf)}). They are copied by hand, so card order may have drifted. Refresh <code>standings.js</code> (see README).</div>` : "";
     const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.stage)}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
     const sel = REGS.map(g => {
       const ls = leaguesWithPlayers.filter(k => k.startsWith(g + "|")); if (!ls.length) return "";
@@ -311,7 +313,7 @@
     box.innerHTML = `<section class="filters"><div class="row"><input class="search" id="rq" type="search" placeholder="Search a team or player across all leagues…" value="${esc(S.q)}" aria-label="Search rosters">
       <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button>
       <span class="seg" role="group" aria-label="Layout"><button class="chip" data-view="cards" aria-pressed="${VIEW === "cards"}">Cards</button><button class="chip" data-view="matrix" aria-pressed="${VIEW === "matrix"}">Matrix</button></span></div>${sel}
-      <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}</section>
+      <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}${sWarn}</section>
       ${strip}
       ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>`;

@@ -60,3 +60,16 @@ A bad fetch should never replace good data.
 - Both can be overridden on purpose: run the *Refresh radar (full)* workflow manually and tick **force** (or pass `--force` locally).
 
 The **Contract Radar** tab is a native view of the same snapshot (`docs/contract.js`): Expiry radar, Market board, What changed (from `history.js`), Data health. The region cards filter all four. The dashboard opens on a **Home** page (what the tool is, live numbers, links into the three views); `python scripts/bump_assets.py` re-stamps the script URLs after you edit a script.
+
+## What is automated, and what is not
+
+| Part | How it updates |
+|---|---|
+| News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every ~10 min, `refresh.yml` every 3 h; filtered to League only |
+| Contract data + change history | synced in `refresh.yml` from the Contract Radar site (which refreshes daily), behind the guard |
+| Site publishing | GitHub Pages on every push; script URLs are re-stamped automatically |
+| Tests | `ci.yml` runs on every push |
+| `standings.js` (card order) | **manual**: copied from Leaguepedia; the Rosters tab warns when it is over 21 days old |
+| `roster-overrides.js` (confirmed signings) | **manual by design**: it is your call what counts as confirmed |
+
+**LoL-only filter.** An item passes if it names League explicitly (league, event or LoL terms), or a known LoL *player handle* (after org names such as "Xi Lai Gaming" are stripped, so an org can't fake a handle), or a known LoL *team* together with a League-only role word (jungler, midlaner, ADC...). A team name alone is not enough, because G2, Fnatic, FURIA, LOUD, NRG and others field Valorant and CS rosters too.
