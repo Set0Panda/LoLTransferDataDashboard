@@ -290,6 +290,20 @@
     }).join("");
     return `<div class="mwrap"><table class="mx"><thead><tr><th>TEAM</th>${MCOLS.map(r => `<th>${r}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
+  // Pack cards into columns (each card goes into the currently shortest column) so short cards leave no dead space,
+  // while ranking order still reads left-to-right, top-to-bottom.
+  function pack() {
+    const g = box.querySelector(".rgrid"); if (!g) return;
+    const cards = g.classList.contains("packed") ? [...g.querySelectorAll(".rcol > .rcard")] : [...g.children].filter(e => e.classList.contains("rcard"));
+    if (!cards.length) return;
+    const n = Math.max(1, Math.min(cards.length, Math.floor((g.clientWidth + 12) / 312)));
+    cards.sort((a, b) => +a.dataset.o - +b.dataset.o);
+    g.classList.add("packed"); g.innerHTML = "";
+    const cols = Array.from({ length: n }, () => { const c = document.createElement("div"); c.className = "rcol"; g.appendChild(c); return c; });
+    cards.forEach(c => { cols.reduce((m, x) => x.offsetHeight < m.offsetHeight ? x : m).appendChild(c); });
+  }
+  let packW = 0;
+  window.addEventListener("resize", () => { const g = box.querySelector(".rgrid.packed"); if (g && Math.abs(g.clientWidth - packW) > 40) { packW = g.clientWidth; pack(); } });
   function render() {
     if (!next) { box.innerHTML = '<div class="card empty">No aligned end date left in the calendar.</div>'; return; }
     const [reg, lg] = S.lg.split("|");
@@ -313,11 +327,12 @@
       <span class="seg" role="group" aria-label="Layout"><button class="chip" data-view="cards" aria-pressed="${VIEW === "cards"}">Cards</button><button class="chip" data-view="matrix" aria-pressed="${VIEW === "matrix"}">Matrix</button></span></div>${sel}
       <div class="hint" style="margin:0">Projection for the ${new Date(next).getUTCFullYear() + 1} season: a slot counts as projected when the sheet lists a contract ending after ${fmtDate(next)}, or you've marked a confirmed signing. Open means nobody on the sheet is signed past that date, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}</section>
       ${strip}
-      ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
+      ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map((c, k) => c.html.replace('<article class="rcard"', '<article data-o="' + k + '" class="rcard"')).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>`;
     const rq = document.getElementById("rq");
     rq.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = document.getElementById("rq"); n.focus(); n.setSelectionRange(pos, pos); };
     document.getElementById("ronly").onclick = () => { S.only = !S.only; render(); };
+    pack(); { const g = box.querySelector(".rgrid"); packW = g ? g.clientWidth : 0; }
     box.querySelectorAll(".rcard, .mrow").forEach(applyAccent);
     box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { VIEW = b.dataset.view; try { localStorage.setItem("radar.rosterView", VIEW); } catch (e) {} render(); });
     box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("rpulse"); setTimeout(() => el.classList.remove("rpulse"), 1400); } });
