@@ -1,5 +1,5 @@
 {
-  "_note": "Edit freely. Feeds marked unverified were not reachable from the build sandbox - the collector logs a warning per failing feed and carries on.",
+  "_note": "Feeds verified in a real browser on 2026-11-08. Dot Esports, Inven Global and Esports Charts have no working RSS feed (HTML or 404) so they are removed. Sheep Esports has no feed either: see the 'sheep' block, which reads its sitemap.",
   "github": {
     "queries": [
       "topic:league-of-legends esports",
@@ -13,23 +13,52 @@
     "min_stars": 3
   },
   "reddit": {
-    "subreddits": ["leagueoflegends", "LeagueOfMemes", "lolesports", "CompetitiveLoL", "LCK", "LoLeventVODs"],
+    "subreddits": [
+      "leagueoflegends",
+      "LeagueOfMemes",
+      "lolesports",
+      "CompetitiveLoL",
+      "LCK",
+      "LoLeventVODs"
+    ],
     "time_filter": "week",
     "limit": 40,
     "min_score": 25
   },
   "youtube": {
-    "queries": ["league of legends transfer news", "lol roster changes", "lol esports analysis tutorial", "lol esports data analysis", "league of legends free agency"],
+    "queries": [
+      "league of legends transfer news",
+      "lol roster changes",
+      "lol esports analysis tutorial",
+      "lol esports data analysis",
+      "league of legends free agency"
+    ],
     "per_query": 15,
     "published_after_days": 60
   },
   "newsletters": [
-    {"name": "Sheep Esports", "url": "https://sheepesports.com/feed", "authority": 0.9},
-    {"name": "Dot Esports - LoL", "url": "https://dotesports.com/league-of-legends/feed", "authority": 0.75},
-    {"name": "Inven Global", "url": "https://www.invenglobal.com/rss/lol", "authority": 0.8},
-    {"name": "Esports Insider", "url": "https://esportsinsider.com/feed", "authority": 0.7},
-    {"name": "Esports Charts", "url": "https://escharts.com/feed", "authority": 0.7}
+    {
+      "name": "Esports Insider",
+      "url": "https://esportsinsider.com/feed",
+      "authority": 0.7
+    },
+    {
+      "name": "Dexerto - LoL",
+      "url": "https://www.dexerto.com/feed/league-of-legends/",
+      "authority": 0.65
+    }
   ],
-  "trusted_reddit_flairs": ["Esports", "Transfer", "Rumor", "Roster"],
-  "max_age_days": 120
+  "trusted_reddit_flairs": [
+    "Esports",
+    "Transfer",
+    "Rumor",
+    "Roster"
+  ],
+  "max_age_days": 120,
+  "sheep": {
+    "enabled": true,
+    "days": 14,
+    "max_pages": 60,
+    "delay": 0.6
+  }
 }

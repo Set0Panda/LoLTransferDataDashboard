@@ -22,8 +22,8 @@ def engagement(t, m):
         v = max(m.get("views", 0), 1)
         like_rate = min(m.get("likes", 0) / v / 0.05, 1)          # 5% like rate = excellent
         return 0.8 * _log(v, 500_000) + 0.2 * like_rate
-    # newsletters expose no engagement: reward depth (reads like an article, not a blurb)
-    return min(m.get("words", 0) / 700, 1.0)
+    # newsletters expose no engagement: reward depth, and treat an outlet's own LEAK tag as a scoop
+    return 1.0 if m.get("leak") else min(m.get("words", 0) / 700, 1.0)
 
 
 def freshness(t, published, now=None):

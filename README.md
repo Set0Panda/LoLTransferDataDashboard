@@ -19,7 +19,7 @@ Pure Python 3.10+ standard library; pytest only for the tests.
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | Reddit | create a "script" app at reddit.com/prefs/apps; without it the public .json is tried and is often 403 from CI |
 
 ## How it works
-- `config.json`: GitHub queries, subreddits, YouTube queries, newsletter feed URLs. **Feed URLs are unverified guesses - replace with the ones you follow.**
+- `config.json`: GitHub queries, subreddits, YouTube queries, newsletter feed URLs. Verified feeds: Esports Insider, Dexerto (LoL). Sheep Esports has no RSS, so `radar/collectors/sheep.py` reads its public sitemap and each new article's metadata (title, short description, tags; the `LEAK` tag marks scoops). Dot Esports and Inven Global have no working feed.
 - `radar/classify.py`: keyword categories (editable), league/role tags, relevance 0-1. Items below 0.3 relevance are dropped.
 - `radar/scoring.py`: quality 0-100 = engagement 35% + relevance 25% + source authority 20% + freshness 20%. Tiers: High 70+, Medium 45-69, Low <45. Breakdown stored per item (hover the score in the dashboard).
 - `snapshots` table keeps every run's stars/views/upvotes, so GitHub "stars this week" becomes real after a week of daily runs.

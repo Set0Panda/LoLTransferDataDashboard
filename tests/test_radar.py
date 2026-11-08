@@ -36,3 +36,19 @@ def test_pipeline_idempotent_and_search():
     assert all(v["new"] == 0 for v in s2.values())
     assert con.execute("select count(*) from snapshots").fetchone()[0] > n1    # but snapshots accumulate
     assert pipeline.search(con, "free agency", category="Transfers & Rumors")
+
+def test_sheep_parse_and_hint():
+    from radar.collectors import sheep
+    page = ('<html><meta property="og:title" content="Sources: Tactical allowed to explore options by Cloud9"/>'
+            '<meta content="Cloud9 allow &amp; explore" property="og:description"/>'
+            '<meta property="article:published_time" content="2026-11-08T02:18:00.000Z"/>'
+            '<meta property="article:tag" content="LoL"/><meta property="article:tag" content="LEAK"/>'
+            '<article><p>one two three</p></article></html>')
+    a = sheep.parse_article(page)
+    assert a["title"].startswith("Sources:") and a["tags"] == ["LoL", "LEAK"] and a["desc"] == "Cloud9 allow & explore" and a["words"] == 3
+    sm = ('<url><loc>https://www.sheepesports.com/en/articles/x/en</loc><lastmod>2999-01-01T00:00:00.000Z</lastmod></url>'
+          '<url><loc>https://www.sheepesports.com/de/articles/y/de</loc><lastmod>2999-01-01T00:00:00.000Z</lastmod></url>'
+          '<url><loc>https://www.sheepesports.com/en/articles/old/en</loc><lastmod>2020-01-01T00:00:00.000Z</lastmod></url>')
+    assert sheep.recent_urls(sm, 14) == ["https://www.sheepesports.com/en/articles/x/en"]
+    c, tags, rel = classify.classify(item(source_type="newsletter", source_name="Sheep Esports", title="Anything", category_hint="Transfers & Rumors"))
+    assert c == "Transfers & Rumors" and rel >= .7

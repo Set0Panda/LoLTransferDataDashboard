@@ -2,7 +2,7 @@
 import re
 
 CATEGORIES = {   # name -> (weight per hit, patterns)
-    "Transfers & Rumors": (3, r"transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"),
+    "Transfers & Rumors": (3, r"sources?:|set to (join|leave|sign|replace|remain|continue)|verbal agreement|explore options|transfer|rumou?rs?|linked to|in talks|signs?\b|signed|signing|joins?\b|joined|leaves?\b|leaving|departs?|departure|released?\b|poach|swap|benched|retire[sd]?|replac(e|es|ed|ing)|sources? (say|claim)|roster (move|change|shuffle)|moves? to"),
     "Contracts & Free Agency": (3, r"contracts?|free[- ]agen(t|cy)|buy-?out|expir(e|es|ing|y)|extension|renew(s|ed|al)?|salary|salaries|clause|rdc|league[- ]recognized|restricted agent|waiv"),
     "Roster Announcements": (2, r"roster|line-?up|announce[sd]?|welcomes?|farewell|academy (call|promot)|promot(e|ed|es)|starting five|substitute|coach(ing staff)?"),
     "Analysis & Stats": (2, r"analysis|stats?\b|statistics|win ?rate|breakdown|power rankings?|preview|recap|deep dive|data[- ]driven|metrics?|projection|model"),
@@ -38,6 +38,7 @@ def classify(item):
         relevance = min(1.0, 0.3 + 0.2 * topic_hits + 0.1 * min(len(scores), 3)
                         + (0.2 if "Transfers & Rumors" in scores else 0))
     default = SOURCE_DEFAULT[item["source_type"]]
+    hint = item.get("category_hint")
     if scores:
         best = max(scores, key=lambda k: (scores[k], k == default))
         # a repo is always a tool/dataset; its topical categories survive as tags
@@ -45,6 +46,9 @@ def classify(item):
             best = "Tools & Data"
     else:
         best = default
+    if hint:                      # explicit signal from the source (e.g. Sheep's LEAK tag)
+        scores.setdefault(hint, 0); best = hint
+        if ctx: relevance = max(relevance, 0.7)
     tags = [k for k in scores if k != best][:3]
     tags += [k for k, p in LEAGUES.items() if re.search(p, text, re.I)]
     tags += [k for k, p in ROLES.items() if re.search(p, text, re.I)][:2]

@@ -3,10 +3,10 @@ from datetime import datetime, timezone, timedelta
 from . import db
 from .classify import classify
 from .scoring import score
-from .collectors import github, reddit, youtube, rss
+from .collectors import github, reddit, youtube, rss, sheep
 from .collectors.common import log
 
-COLLECTORS = {"github": github, "reddit": reddit, "youtube": youtube, "newsletter": rss}
+COLLECTORS = {"github": github, "reddit": reddit, "youtube": youtube, "newsletter": rss, "sheep": sheep}
 MIN_RELEVANCE = 0.3
 
 
@@ -19,6 +19,8 @@ def collect(con, cfg, only=None, fixtures=False):
         log(f"[{name}] collecting...")
         t0 = time.time()
         try:
+            if name == "sheep":
+                cfg["_known"] = {r[0] for r in con.execute("SELECT external_id FROM items WHERE source_name='Sheep Esports'")}
             items = mod.collect(cfg, fixtures=fixtures)
             status = "ok"
         except Exception as e:                 # one broken source must not kill the run
