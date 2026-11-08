@@ -55,6 +55,14 @@ def source_id(con, type_, name, url=None, authority=0.5):
     return con.execute("SELECT id FROM sources WHERE type=? AND name=?", (type_, name)).fetchone()[0]
 
 
+def is_duplicate(con, it):
+    """Same headline from the same publisher under a different link (Google News can hand out several) is one story."""
+    if it["source_type"] != "newsletter":
+        return False
+    return con.execute("SELECT 1 FROM items WHERE source_name=? AND lower(title)=lower(?) AND id<>?",
+                       (it["source_name"], it["title"], item_id(it["source_type"], it["external_id"]))).fetchone() is not None
+
+
 def upsert(con, it):
     """it: dict with source_type, source_name, external_id, title, url, author, summary,
     published_at, metrics(dict), authority. Returns (id, is_new)."""

@@ -29,7 +29,7 @@ def collect(con, cfg, only=None, fixtures=False):
         new = kept = 0
         for it in items:
             cat, tags, rel = classify(it)
-            if rel < MIN_RELEVANCE:
+            if rel < MIN_RELEVANCE or db.is_duplicate(con, it):
                 continue
             it["metrics"] = {**it["metrics"], **{"_" + k: v for k, v in it.get("extra", {}).items()}}
             iid, is_new = db.upsert(con, it)
@@ -64,6 +64,9 @@ def rescore(con, cfg):
                 con.execute("DELETE FROM items WHERE id=?", (r["id"],))
                 continue
             con.execute("UPDATE items SET category=?, tags=? WHERE id=?", (cat, json.dumps(tags), r["id"]))
+    con.execute("""DELETE FROM items WHERE source_type='newsletter' AND rowid NOT IN
+                   (SELECT MIN(rowid) FROM items WHERE source_type='newsletter' GROUP BY source_name, lower(title))
+                   AND source_type='newsletter'""")
     con.execute("DELETE FROM items_fts")
     con.execute("""INSERT INTO items_fts(rowid,title,summary,tags,source_name)
                    SELECT rowid,title,COALESCE(summary,''),tags,source_name FROM items""")

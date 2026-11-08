@@ -83,3 +83,12 @@ def test_noise_is_dropped_and_real_moves_kept():
     for real in ["Sources: Zicssi set to join SK Gaming for the 2027 LEC season", "Perkz Dismissed by G2 Esports Over Controversial Comments",
                  "Team Vitality Target SK Standout Jopa as LEC Botlane Market Freezes", "G2 Esports Begin LEC Rebuild as SkewMond Exits Starting Roster"]:
         assert classify(mk(real))[2] >= 0.3, real
+
+
+def test_same_headline_same_publisher_is_a_duplicate():
+    from radar import db
+    con = db.connect(":memory:")
+    a = dict(source_type="newsletter", source_name="Sheep Esports", external_id="https://g/1", title="Looki is set to remain with KCB", url="u", author="x", summary="", published_at=None, metrics={}, authority=.9)
+    b = dict(a, external_id="https://g/2"); c = dict(a, source_name="Dot Esports", external_id="https://g/3")
+    db.upsert(con, a)
+    assert db.is_duplicate(con, b) and not db.is_duplicate(con, c) and not db.is_duplicate(con, a)
