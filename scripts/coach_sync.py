@@ -52,6 +52,19 @@ def main():
     ok, r = login(user, pw)
     if not ok:
         print("coach_sync: login failed, keeping existing file:", json.dumps(r)[:300]); return
+    if "--probe" in sys.argv:
+        variants = [
+            ("Role only", "Date_Sort,Player,Direction,Team,Role", "Role LIKE '%Coach%'"),
+            ("Roles HOLDS", "Date_Sort,Player,Direction,Team,Roles", "Roles HOLDS LIKE '%Coach%'"),
+            ("RolesStaff HOLDS", "Date_Sort,Player,Direction,Team,RolesStaff", "RolesStaff HOLDS LIKE '%Coach%'"),
+            ("RoleDisplay", "Date_Sort,Player,Direction,Team,RoleDisplay", "RoleDisplay LIKE '%Coach%'"),
+            ("no where, T1", "Date_Sort,Player,Direction,Team,Role,Roles,RolesStaff,RoleDisplay", "Team='T1'"),
+        ]
+        for name, f, w in variants:
+            j = call({"action": "cargoquery", "tables": "RosterChanges", "fields": f, "where": w + " AND Date_Sort>'2025-06-01'",
+                      "order_by": "Date_Sort DESC", "limit": 5}); time.sleep(3)
+            print("PROBE", name, "->", json.dumps(j, ensure_ascii=False)[:900])
+        return
     mine = {norm(n): n for n in our_teams()}
     # all coach/staff roster events since mid-2024, oldest first, so the latest event per person wins
     events, off = [], 0
