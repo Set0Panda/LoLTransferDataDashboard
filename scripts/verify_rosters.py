@@ -38,9 +38,8 @@ MAJOR = ("LCK", "LPL", "LEC", "LCS", "LCP")
 sheet = {}
 print("\n== SHEET PLAYERS WHOSE LATEST WIKI EVENT DISAGREES ==")
 for reg_i, name, role, *_ in R:
-    if role not in ("TOP", "JUNGLE", "MID", "BOT", "SUPPORT"): continue
     t = T[reg_i]
-    if t[1] not in MAJOR: continue
+    if t[1] not in MAJOR or role in ("COACH", "STAFF"): continue      # LCK rows have no role on the sheet (added from roles-kr.js), so accept blank/SUB too
     sheet.setdefault(t[2], set()).add(norm(name))
     l = last.get(norm(name))
     if not l: continue
