@@ -87,7 +87,7 @@
   }));
   const teamPat = T.filter(t => t.i === canon[t.i]).map(t => {
     const pats = [norm(t.name)];
-    const code = (t.code || "").trim();
+    const code = (t.code || "").trim() || (t.name.length <= 3 && t.name === t.name.toUpperCase() ? t.name : "");   // "T1", "KRX" have no code column: the short name is the code
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
   });
