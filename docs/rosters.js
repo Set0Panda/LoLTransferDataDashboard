@@ -49,6 +49,16 @@
   });
   const teamByName = {}; T.forEach(t => { teamByName[norm(t.name)] = t.i; });
 
+  // ---- coaches for regions Riot's sheet has none for (LCK, LPL): Leaguepedia list + manual file; marked * ----
+  const noCoach = new Set(T.filter(t => !hasCoachData[t.reg]).map(t => t.reg));
+  const extC = {};
+  ((window.EXT_COACHES || {}).rows || []).forEach(r => { extC[norm(r[0]) + "|" + norm(r[1])] = { team: r[0], name: r[1] }; });
+  (window.COACHES_MANUAL || []).forEach(r => { if (r && r.team && r.name) extC[norm(r.team) + "|" + norm(r.name)] = { team: r.team, name: r.name }; });
+  Object.values(extC).forEach(c => {
+    const ti = teamByName[norm(c.team)]; if (ti === undefined || !noCoach.has(T[ti].reg)) return;
+    coaches[canon[ti]].push({ name: c.name, role: "COACH", end: "", res: "", ti: canon[ti], ms: null, ext: true });
+  });
+
   // ---- overrides ----
   const OV = (window.ROSTER_OVERRIDES || []).filter(o => o && o.player && (o.from || o.to));
   const leaving = {}, incoming = T.map(() => []), rumorTags = T.map(() => []);
@@ -242,7 +252,7 @@
     let projected = 0, hasRumor = false, open = false;
     const nm = p => { const m = playerItems.get(t.i + "|" + norm(p.name)); if (m && m.length) hasRumor = true; const k = t.i + "|" + norm(p.name), aw = rumAway.get(k), ou = rumOut.get(k); if (aw || ou) hasRumor = true;
       const mark = aw ? ` <span class="rumo" title="Rumour: ${esc(T[aw.to].name)}">&rarr; ${esc(T[aw.to].name)} (rumour)</span>` : ou ? ` <span class="rumo">may leave (rumour)</span>` : "";
-      return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${mark}${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
+      return `<span class="pn" data-h="${esc(norm(p.name))}"><span class="pl">${esc(p.name)}</span>${p.ext ? '<sup title="Not from Riot\'s sheet (Leaguepedia or entered by hand)">*</sup>' : ""}${mark}${flag(m, m && m.length === 1 ? "mention" : "mentions", t.i, p.name)}</span>`; };
     const sts = [], cells = {};
     const slots = STARTERS.map(role => {
       const inRole = base.filter(p => p.role === role);
