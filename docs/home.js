@@ -9,8 +9,9 @@
     const NOW = Date.now(), R = window.RADAR || { items: [], meta: {} };
     const items = R.items.filter(i => i.type === "newsletter" && MOVES.has(i.category));
     const week = items.filter(i => NOW - Date.parse(i.published || i.seen) <= 7 * MS).length;
-    const players = (window.GCD_ROWS || []).filter(r => ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"].includes(r[2])).length;
-    const teams = (window.GCD_TEAMS || []).filter(t => t[1]).length;
+    const CS = (window.ContractView && window.ContractView.stats) || {};
+    const players = CS.players || (window.GCD_ROWS || []).filter(r => ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"].includes(r[2])).length;
+    const teams = CS.teams || (window.GCD_TEAMS || []).filter(t => t[1]).length;
     const nx = ALIGNED.find(d => Date.parse(d + "T23:59:00Z") >= NOW), days = nx ? Math.ceil((Date.parse(nx + "T23:59:00Z") - NOW) / MS) : null;
     const latest = items.slice().sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen)).slice(0, 6);
     const ago = i => { const d = Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS)); return d === 0 ? "today" : d + "d ago"; };

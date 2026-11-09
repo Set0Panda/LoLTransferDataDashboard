@@ -239,6 +239,9 @@
     const hm = box.querySelector("#hmore"); if (hm) hm.onclick = () => { S.hshown += 60; S.hopen = true; render(); };
     const mo = box.querySelector("#cmore"); if (mo) mo.onclick = () => { S.shown += 100; render(); };
   }
-  window.ContractView = { render };
+  // single source of truth for the headline numbers Home shows, so Home and the region cards can never disagree
+  const STATS = { players: P.filter(p => p.player).length, teams: new Set(P.filter(p => p.player).map(p => p.t.i)).size };
+  window.ContractView = { render, stats: STATS };
   render();
+  if (window.HomeView && !document.getElementById("viewHome").hidden) HomeView.render();   // Home was drawn before these numbers existed
 })();
