@@ -203,7 +203,7 @@
       const t0 = Date.parse(date); if (over || denied || !pl || !(NOW - t0 < RUM_DAYS * MS)) return;
       const a = wikiTeam(ts), b = wikiTeam(te), role = roleFrom(re || rs);
       const it = { title: pl + (a != null && b != null ? ` (${T[a].name} to ${T[b].name})` : b != null ? ` to ${T[b].name}` : a != null ? ` leaving ${T[a].name}` : ""), url, source: site || "Leaguepedia", category: "Leaguepedia rumour",
-                   published: date, seen: date, quality: .8, wiki: { status: status || "Rumour", date } };
+                   published: date, seen: date, quality: .8, wiki: { status: (status || "Rumour").replace(/^rumor$/i, "Rumour"), date } };
       if (b != null) addIn(pl, b, role, a, it); else if (a != null) addOut(pl, a, it);
     });
   }
