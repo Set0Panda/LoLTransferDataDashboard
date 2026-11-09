@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="League of Legends transfer tracker: provisional rosters for every major region, rumours and roster news from several sources, and a Contract Radar of expiring deals.">
+<link rel="canonical" href="https://set0panda.github.io/LoLTransferDataDashboard/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LoL Transfer Radar">
+<meta property="og:description" content="League of Legends transfer tracker: provisional rosters for every major region, rumours and roster news from several sources, and a Contract Radar of expiring deals.">
+<meta property="og:url" content="https://set0panda.github.io/LoLTransferDataDashboard/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="LoL Transfer Radar">
+<meta name="twitter:description" content="League of Legends transfer tracker: provisional rosters for every major region, rumours and roster news from several sources, and a Contract Radar of expiring deals.">
 <title>LoL Transfer Radar</title>
 <style>
   :root {
@@ -92,7 +101,8 @@
   .empty { color:var(--ink3); padding:18px 0; text-align:center; }
 
   /* ---- provisional rosters ---- */
-  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; scrollbar-width:none; max-width:100%; }
+  .tab { flex:0 0 auto; white-space:nowrap; }
   .tab { background:transparent; border:1px solid var(--line); border-radius:8px; padding:6px 14px; cursor:pointer; font-weight:600; color:var(--ink2); }
   .tab[aria-selected="true"] { background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .rgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); column-gap:12px; row-gap:0; margin:14px 0; }
@@ -294,7 +304,8 @@
 <script src="data.js"></script>
 <script>
 let D = window.RADAR || {meta:{sources:[]}, items:[]};
-const TYPES = [["github","GitHub"],["youtube","YouTube"],["newsletter","Newsletters"]];
+D = {...D, items: D.items.filter(i => i.type !== "github")};   // dev-tooling repos aren't transfer news; kept in data, hidden in the UI
+const TYPES = [["youtube","YouTube"],["newsletter","Newsletters"]];
 const TNAME = Object.fromEntries(TYPES), TIERS = ["Low","Medium","High"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const $ = id => document.getElementById(id);
@@ -452,6 +463,11 @@ document.addEventListener("click", e => {
   const c = e.target.closest("[data-cat]"); if (c) return toggle(S.cats, c.dataset.cat);
   const s = e.target.closest("[data-src]"); if (s) return toggle(S.srcs, s.dataset.src);
   const t = e.target.closest("[data-term]"); if (t) { $("q").value = S.q = t.dataset.term; S.shown = 30; render(); }
+});
+document.querySelector(".tabs").addEventListener("keydown", e => {
+  const t=[...document.querySelectorAll(".tabs [role=tab]")], k=t.indexOf(document.activeElement); if(k<0) return;
+  const n={ArrowRight:(k+1)%t.length,ArrowLeft:(k+t.length-1)%t.length,Home:0,End:t.length-1}[e.key]; if(n==null) return;
+  e.preventDefault(); t[n].focus(); t[n].click();
 });
 document.addEventListener("keydown", e => { if (e.key==="Enter" && e.target.matches("[role=button]")) e.target.click(); });
 $("q").oninput = e => { S.q = e.target.value; S.shown = 30; render(); };
