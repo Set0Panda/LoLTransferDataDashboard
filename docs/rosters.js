@@ -227,7 +227,13 @@
   const rankIdx = {};      // "LCK|normalised sheet name" -> {rank, rec}
   Object.entries(ST.leagues || {}).forEach(([lg, v]) => {
     const sheetNames = T.filter(t => t.lg === lg).map(t => t.name);
-    v.teams.forEach((x, i) => {
+    // Finished seasons: playoff placement (v.finish) goes first, the rest follow the regular-season table.
+    const fin = (v.finish || []).map(n => n.toLowerCase());
+    const ordered = v.teams.slice().sort((a, b) => {
+      const ia = fin.indexOf(a.name.toLowerCase()), ib = fin.indexOf(b.name.toLowerCase());
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+    ordered.forEach((x, i) => {
       const want = norm((ST.aliases || {})[x.name] || x.name).replace(/\(.*?\)/g, "").replace(/[^a-z0-9]/g, "");
       const hit = sheetNames.find(n => norm(n).replace(/[^a-z0-9]/g, "") === want)
         || sheetNames.find(n => { const m = norm(n).replace(/[^a-z0-9]/g, ""); return m.includes(want) || want.includes(m); });
@@ -373,7 +379,7 @@
     const sv = ST.leagues && ST.leagues[lg];
     const sAge = ST.asOf ? Math.floor((NOW - Date.parse(ST.asOf + "T00:00:00Z")) / MS) : null;
     const sWarn = sAge != null && sAge > 21 && !q ? `<div class="rwarn"><b>League rankings are ${sAge} days old</b> (as of ${esc(ST.asOf)}). They are copied by hand, so card order may have drifted. Refresh <code>standings.js</code> (see README).</div>` : "";
-    const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.stage)}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
+    const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.finishNote || sv.stage)}${sv.finishNote ? ", then " + esc(sv.stage) + " regular-season table" : ""}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is regular-season series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
     const sel = REGS.map(g => {
       const ls = leaguesWithPlayers.filter(k => k.startsWith(g + "|")); if (!ls.length) return "";
       return `<div class="row">${regLogo(g)}${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;

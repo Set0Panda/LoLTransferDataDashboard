@@ -6,6 +6,8 @@ window.STANDINGS = {
  "source": "Leaguepedia standings tables, copied by hand from each league's 2026 season page",
  "leagues": {
   "LCK": {
+   "finish": ["Gen.G", "Hanwha Life Esports", "T1", "Dplus Kia"],
+   "finishNote": "Playoffs: Gen.G champion, HLE runner-up, T1, Dplus KIA",
    "stage": "2026 Season: Legend group, then Rise group",
    "teams": [
     {
@@ -81,6 +83,8 @@ window.STANDINGS = {
    ]
   },
   "LPL": {
+   "finish": ["Anyone's Legend", "Bilibili Gaming", "Invictus Gaming"],
+   "finishNote": "Split 3 playoffs: Anyone's Legend champion, BLG runner-up, Invictus Gaming",
    "stage": "2026 second group stage: Ascend group, then Nirvana group",
    "teams": [
     {
@@ -184,6 +188,8 @@ window.STANDINGS = {
    ]
   },
   "LEC": {
+   "finish": ["G2 Esports", "Movistar KOI", "Karmine Corp"],
+   "finishNote": "Summer playoffs: G2 champion, Movistar KOI runner-up, Karmine Corp",
    "stage": "2026 Summer",
    "teams": [
     {
@@ -259,6 +265,8 @@ window.STANDINGS = {
    ]
   },
   "LCS": {
+   "finish": ["Team Liquid", "LYON (2024 American Team)"],
+   "finishNote": "Summer playoffs: Team Liquid champion, LYON runner-up",
    "stage": "2026 Summer",
    "teams": [
     {
@@ -320,6 +328,8 @@ window.STANDINGS = {
    ]
   },
   "CBLOL": {
+   "finish": ["LØS", "FURIA"],
+   "finishNote": "Split 2 playoffs: LØS champion, FURIA runner-up",
    "stage": "2026 Split 2",
    "teams": [
     {
