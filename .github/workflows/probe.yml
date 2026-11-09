@@ -1,0 +1,15 @@
+name: probe-leaguepedia
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe Cargo schema
+        run: |
+          UA="LoLTransferRadar/1.0 (https://github.com/Set0Panda/LoLTransferDataDashboard)"
+          B="https://lol.fandom.com/api.php"
+          for T in Tenures Contracts TeamStaff; do
+            echo "== fields $T"; curl -sS -m 40 -A "$UA" "$B?action=cargofields&table=$T&format=json" | head -c 1500; echo
+          done
+          echo "== tenures sample"
+          curl -sS -m 40 -A "$UA" -G "$B" --data-urlencode "action=cargoquery" --data-urlencode "tables=Tenures" --data-urlencode "fields=Player,Team,Role,DateJoin,DateLeave,IsCurrent,ContractEnd" --data-urlencode "where=Role LIKE '%Coach%' AND IsCurrent=1" --data-urlencode "limit=10" --data-urlencode "format=json" | head -c 2500
