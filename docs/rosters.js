@@ -242,7 +242,26 @@
   const S = { lg: null, q: "", only: false };
   const leaguesWithPlayers = [...new Set(T.filter(t => byTeam[t.i].length && t.i === canon[t.i] && t.lg !== "(no league)").map(t => t.reg + "|" + t.lg))]
     .sort((a, b) => { const [ra, la] = a.split("|"), [rb, lb] = b.split("|"); return REGS.indexOf(ra) - REGS.indexOf(rb) || (TOP_LG[la] ? 0 : 1) - (TOP_LG[lb] ? 0 : 1) || la.localeCompare(lb); });
-  S.lg = leaguesWithPlayers.find(k => /\|LCK$/.test(k)) || leaguesWithPlayers[0];
+  // league of a news item: the most common league among the teams and players its headline names, else a league tag
+  const LG_TAGS = ["LCK", "LEC", "LCS", "LPL", "CBLOL", "LJL", "PCS", "VCS", "LCP"];
+  const LG_SHORT = { "Circuito Desafiante": "CD" };
+  const leagueOf = it => {      // up to two leagues, most-named first ("LPL · LCK" when a story spans both)
+    const c = {}; (itemAny.get(it.url) || []).forEach(ti => { const l = T[ti] && T[ti].lg; if (l && l !== "(no league)") c[l] = (c[l] || 0) + 1; });
+    const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => LG_SHORT[x[0]] || x[0]);
+    return top.length ? top.join(" · ") : ((it.tags || []).find(x => LG_TAGS.includes(x)) || "");
+  };
+  // default league: the visitor's last choice, else the league with the most transfer news in the last 7 days, else LCK
+  const hotLeague = () => {
+    const c = {}; ((window.RADAR && window.RADAR.items) || []).forEach(it => {
+      if (!MENTION_CATS.has(it.category) || NOW - Date.parse(it.published || it.seen) > 7 * MS) return;
+      const lg = leagueOf(it).split(" · ")[0]; if (lg) c[lg] = (c[lg] || 0) + 1;
+    });
+    const top = Object.entries(c).filter(([lg]) => leaguesWithPlayers.some(k => k.endsWith("|" + lg))).sort((a, b) => b[1] - a[1])[0];
+    return top ? leaguesWithPlayers.find(k => k.endsWith("|" + top[0])) : null;
+  };
+  let savedLg = null; try { savedLg = localStorage.getItem("radar.rosterLeague"); } catch (e) {}
+  S.lg = (savedLg && leaguesWithPlayers.includes(savedLg) && savedLg) || hotLeague() || leaguesWithPlayers.find(k => /\|LCK$/.test(k)) || leaguesWithPlayers[0];
+  const saveLg = () => { try { localStorage.setItem("radar.rosterLeague", S.lg); } catch (e) {} };
 
   function logo(t) {
     const d = LOGOS[t.name];
@@ -374,7 +393,7 @@
     box.querySelectorAll(".rcard, .mrow").forEach(applyAccent);
     box.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { VIEW = b.dataset.view; try { localStorage.setItem("radar.rosterView", VIEW); } catch (e) {} render(); });
     box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("rpulse"); setTimeout(() => el.classList.remove("rpulse"), 1400); } });
-    box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; render(); });
+    box.querySelectorAll("[data-rlg]").forEach(b => b.onclick = () => { S.lg = b.dataset.rlg; S.q = ""; saveLg(); render(); });
   }
   // ---- side panel: team + roster + every news item that names the team or a player ----
   const dr = document.getElementById("rdrawer"), back = document.getElementById("rd-back");
@@ -420,14 +439,6 @@
     if (e.target.closest(".rdx") || e.target === back) closeDrawer();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && DR) closeDrawer(); });
-  // league of a news item: the most common league among the teams and players its headline names, else a league tag
-  const LG_TAGS = ["LCK", "LEC", "LCS", "LPL", "CBLOL", "LJL", "PCS", "VCS", "LCP"];
-  const LG_SHORT = { "Circuito Desafiante": "CD" };
-  const leagueOf = it => {      // up to two leagues, most-named first ("LPL · LCK" when a story spans both)
-    const c = {}; (itemAny.get(it.url) || []).forEach(ti => { const l = T[ti] && T[ti].lg; if (l && l !== "(no league)") c[l] = (c[l] || 0) + 1; });
-    const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => LG_SHORT[x[0]] || x[0]);
-    return top.length ? top.join(" · ") : ((it.tags || []).find(x => LG_TAGS.includes(x)) || "");
-  };
-  window.Rosters = { leagueOf, setLeague(k) { if (leaguesWithPlayers.includes(k)) { S.lg = k; S.q = ""; } }, render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
+  window.Rosters = { leagueOf, setLeague(k) { if (leaguesWithPlayers.includes(k)) { S.lg = k; S.q = ""; saveLg(); } }, render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
   render();
 })();
