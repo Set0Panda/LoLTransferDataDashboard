@@ -22,7 +22,12 @@ NOISE = re.compile(
     r"|\bvs\.?\b.*\||\d\s?[–-]\s?\d\s*\||matches, roster and results"
     r"|valorant|\bvct\b|\bcs2?\b|counter-strike|\bcsgo\b|rocket league|\brlcs\b|game changers|dota|overwatch|apex legends"
     r"|fortnite|\btft\b|teamfight tactics|wild rift|발로란트|瓦罗兰特|\biem\b|\bblast\b|\bpgl\b|mobile legends|\bmlbb\b"
+    r"|pension|superfund|annuit|insurance|\bftse\b|asset manage|actuar|mortgage"      # "LCP" is also a UK pensions consultancy
     r"|call of duty|rainbow six|duelist|initiator|\bigl\b|in-game leader|entry fragger|\bawper\b|\bvlr\b|\bhltv\b|vct ", re.I)
+
+# A headline that only matched on "coach"/"roster"/"lineup" (no transfer or contract wording) and is really about a match, a draft,
+# an interview or a schedule page is not a move.
+ROSTER_ONLY_NOISE = re.compile(r"결승|준결승|4강|8강|꺾|격파|인터뷰|\binterview\b|半决赛|决赛|第[一二三四五六七八九十\d]局|\bBP\b|对阵|schedule|results|\bvs\.?\b", re.I)
 
 SOURCE_DEFAULT = {"github": "Tools & Data", "youtube": "Analysis & Stats", "newsletter": "Roster Announcements"}
 
@@ -98,6 +103,8 @@ def classify(item):
         relevance = min(1.0, 0.3 + 0.2 * topic_hits + 0.1 * min(len(scores), 3)
                         + (0.2 if "Transfers & Rumors" in scores else 0))
     if item["source_type"] == "newsletter" and NOISE.search(item["title"]):
+        relevance = 0.0
+    elif item["source_type"] == "newsletter" and topic_hits == 1 and "Roster Announcements" in scores and ROSTER_ONLY_NOISE.search(item["title"]):
         relevance = 0.0
     elif item["source_type"] == "newsletter" and topic_hits == 0:
         relevance = min(relevance, 0.2)        # a news item must be about a move, a contract or a roster

@@ -136,3 +136,12 @@ def test_team_name_plus_lol_role_counts_as_lol():
     assert rel("Fnatic signs new jungler for 2027") >= 0.3          # LoL team + LoL-only role word
     assert rel("Sentinels sign new duelist") == 0.0                  # Valorant
     assert rel("FURIA sign new IGL") == 0.0                          # team name alone / CS-Valorant word is not enough
+
+
+def test_false_positives_are_dropped():
+    from radar.classify import classify
+    nl = lambda t: classify({"title": t, "summary": "", "source_name": "x", "source_type": "newsletter"})[2]
+    assert nl("Covenant focus key as UK superfund market expands, says LCP") == 0
+    assert nl("광주 출신 젠지 코치 ‘노바’ 박찬호, 롤드컵 결승 간다") == 0
+    assert nl("BLG 对阵 T1 半决赛第三局BP 阵容公布") == 0
+    assert nl("Sources: Pad set to join G2 Esports for LEC 2027 as Strategic Coach") > 0.5
