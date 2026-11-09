@@ -70,8 +70,8 @@ def main():
     events, off = [], 0
     while True:
         j = call({"action": "cargoquery", "tables": "RosterChanges",
-                  "fields": "Date_Sort,Player,Direction,Team,Role,RolesStaff,Roles",
-                  "where": "(Role LIKE '%Coach%' OR RolesStaff LIKE '%Coach%') AND Date_Sort>'2024-06-01'",
+                  "fields": "Date_Sort,Player,Direction,Team,Role",
+                  "where": "Role LIKE '%Coach%' AND Date_Sort>'2024-06-01'",
                   "order_by": "Date_Sort ASC", "limit": 500, "offset": off})
         if "cargoquery" not in j:
             print("coach_sync: query failed, keeping existing file:", json.dumps(j)[:300]); return
@@ -80,12 +80,15 @@ def main():
         if len(rows) < 500: break
         off += 500; time.sleep(3)
     state, unmatched = {}, set()
+    day = lambda e: (e.get("Date Sort") or e.get("Date_Sort") or "")[:10]
+    # same-day leave+join (a move) must end as "joined": process leaves first
+    events.sort(key=lambda e: (day(e), 0 if (e.get("Direction") or "").lower().startswith("leave") else 1))
     for e in events:
         team = mine.get(norm(e.get("Team")))
         if not team:
             continue
-        key = (team, e["Player"]); d = (e.get("Direction") or "").lower()
-        if d.startswith("join"): state[key] = e["Date_Sort"][:10]
+        key = (team, re.sub(r"\s*\(.*?\)\s*$", "", e["Player"]).strip()); d = (e.get("Direction") or "").lower()   # "Viod (Lu Fan)" -> "Viod"
+        if d.startswith("join"): state[key] = day(e)
         elif d.startswith("leave"): state.pop(key, None)
     got = sorted(state)
     print(f"coach_sync: {len(events)} events, {len(got)} current coaches across {len({t for t, _ in got})} teams")
