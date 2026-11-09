@@ -40,6 +40,11 @@ def login(user, pw):
     r = call({"action": "login", "lgname": user, "lgpassword": pw, "lgtoken": t}, post=True)
     return r.get("login", {}).get("result") == "Success", r
 
+# Leaguepedia name -> name used on Contract Radar, where they differ beyond case/punctuation
+ALIAS = {"teamwe": "Xi'an Team WE", "jdgaming": "Beijing JDG Esports", "lngesports": "Suzhou LNG Esports",
+         "ninjasinpyjamas": "Shenzhen NINJAS IN PYJAMAS", "nongshimredforce": "NS REDFORCE", "kiwoomdrx": "KRX", "drx": "KRX",
+         "weibogaming": "WeiboGaming", "ultraprimeesports": "Ultra Prime"}
+
 def our_teams():
     s = open(DATA, encoding="utf-8").read()
     teams = json.loads(re.search(r"GCD_TEAMS\s*=\s*(\[.*?\]);", s, re.S).group(1))
@@ -84,12 +89,17 @@ def main():
     # same-day leave+join (a move) must end as "joined": process leaves first
     events.sort(key=lambda e: (day(e), 0 if (e.get("Direction") or "").lower().startswith("leave") else 1))
     for e in events:
-        team = mine.get(norm(e.get("Team")))
+        n = norm(e.get("Team")); team = mine.get(n) or mine.get(norm(ALIAS.get(n, "")))
         if not team:
             continue
         key = (team, re.sub(r"\s*\(.*?\)\s*$", "", e["Player"]).strip()); d = (e.get("Direction") or "").lower()   # "Viod (Lu Fan)" -> "Viod"
         if d.startswith("join"): state[key] = day(e)
         elif d.startswith("leave"): state.pop(key, None)
+    # someone current at two teams = a move whose "leave" was never logged: keep the most recent join
+    latest = {}
+    for (t, p), since in state.items():
+        if p not in latest or since > state[(latest[p], p)]: latest[p] = t
+    state = {k: v for k, v in state.items() if latest[k[1]] == k[0]}
     got = sorted(state)
     print(f"coach_sync: {len(events)} events, {len(got)} current coaches across {len({t for t, _ in got})} teams")
     for t, p in got: print("   ", t, "|", p, "| since", state[(t, p)])
