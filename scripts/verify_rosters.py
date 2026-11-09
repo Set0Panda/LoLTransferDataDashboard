@@ -27,23 +27,29 @@ while True:
 print("events:", len(ev))
 day = lambda e: (e.get("Date Sort") or e.get("Date_Sort") or "")[:10]
 ev.sort(key=lambda e: (day(e), 0 if (e.get("Direction") or "").lower().startswith("leave") else 1))
-last = {}
-for e in ev: last[norm(re.sub(r"\s*\(.*?\)\s*$", "", e["Player"]))] = (day(e), (e.get("Direction") or "").lower()[:5], e.get("Team"), e.get("Role"))
+last, disp = {}, {}
+for e in ev:
+    raw = re.sub(r"\s*\(.*?\)\s*$", "", e["Player"]); last[norm(raw)] = (day(e), (e.get("Direction") or "").lower()[:5], e.get("Team"), e.get("Role")); disp[norm(raw)] = raw
 nm = lambda x: norm(x).replace("esports", "").replace("gaming", "")
-same = lambda a, b: nm(a) == nm(b) or (len(nm(a)) > 3 and len(nm(b)) > 3 and (nm(a) in nm(b) or nm(b) in nm(a)))
+AL = {"teamwe": "xianteamwe", "jdgaming": "beijingjdg", "lngesports": "suzhoulng", "ninjasinpyjamascn": "shenzhenninjasinpyjamas", "nongshimredforce": "nsredforce", "kiwoomdrx": "krx", "drx": "krx"}
+cn = lambda x: AL.get(norm(x), norm(x)).replace("esports", "").replace("gaming", "").replace("club", "")
+same = lambda a, b: cn(a) == cn(b) or nm(a) == nm(b)
+MAJOR = ("LCK", "LPL", "LEC", "LCS", "LCP")
 sheet = {}
 print("\n== SHEET PLAYERS WHOSE LATEST WIKI EVENT DISAGREES ==")
 for reg_i, name, role, *_ in R:
     if role not in ("TOP", "JUNGLE", "MID", "BOT", "SUPPORT"): continue
-    t = T[reg_i]; sheet.setdefault(t[2], set()).add(norm(name))
+    t = T[reg_i]
+    if t[1] not in MAJOR: continue
+    sheet.setdefault(t[2], set()).add(norm(name))
     l = last.get(norm(name))
     if not l: continue
     d, dirn, team, wrole = l
-    if dirn.startswith("leave") and same(team, t[2]): print(f"LEFT   {t[1]:8} {t[2]:28} {name:14} left {team} on {d} ({wrole})")
-    elif dirn.startswith("join") and not same(team, t[2]): print(f"MOVED  {t[1]:8} {t[2]:28} {name:14} joined {team} on {d} ({wrole})")
+    if dirn.startswith("leave") and same(team, t[2]): print(f"LEFT   {t[1]:5} {t[2]:28} {name:14} left {team} on {d} ({wrole})")
+    elif dirn.startswith("join") and not same(team, t[2]): print(f"MOVED  {t[1]:5} {t[2]:28} {name:14} joined {team} on {d} ({wrole})")
 print("\n== WIKI JOINERS (latest event = join) AT OUR TEAMS BUT NOT ON THE SHEET ==")
 for p, (d, dirn, team, wrole) in sorted(last.items(), key=lambda x: x[1][0]):
     if not dirn.startswith("join"): continue
     for t in T:
-        if t[1] in ("LCK", "LPL", "LEC", "LCS", "LCP") and same(team, t[2]) and p not in sheet.get(t[2], set()):
-            print(f"JOINED {t[1]:8} {t[2]:28} {p:14} {d} ({wrole})"); break
+        if t[1] in MAJOR and same(team, t[2]) and p not in sheet.get(t[2], set()):
+            print(f"JOINED {t[1]:8} {t[2]:28} {disp[p]:14} {d} ({wrole})"); break
