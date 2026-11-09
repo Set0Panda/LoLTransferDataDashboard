@@ -210,7 +210,7 @@
   .hmdoor:hover { transform:translateY(-2px); box-shadow:0 8px 24px -10px color-mix(in srgb,var(--c) 55%,transparent); border-color:color-mix(in srgb,var(--c) 50%,var(--line)); border-top-color:var(--c); }
   .hmico { width:38px; height:38px; border-radius:10px; display:grid; place-items:center; background:color-mix(in srgb,var(--c) 22%,var(--surface)); color:var(--c); } .hmico svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .hmdoor h3 { margin:4px 0 0; font-size:18px; } .hmdoor p { margin:0; color:var(--ink2); font-size:13px; flex:1; } .hmcta { font-weight:600; font-size:13px; color:var(--c); } .hmcta i { font-style:normal; display:inline-block; transition:transform .15s; } .hmdoor:hover .hmcta i { transform:translateX(3px); }
-  .hmcols { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; align-items:start; } .hmh { margin:0 0 8px; font-size:14px; }
+  .hmcols { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; align-items:stretch; } .hmtags { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; } .hmh { margin:0 0 8px; font-size:14px; }
   .hmnews { padding:8px 0; border-top:1px solid var(--line); font-size:13px; display:grid; gap:2px; } .hmnews:first-of-type { border-top:0; } .hmnews a { text-decoration:none; } .hmnews a:hover { text-decoration:underline; }
   .hmlist { margin:0; padding-left:18px; display:grid; gap:8px; font-size:13px; color:var(--ink2); } .hmlist b { color:var(--ink); }
   /* Contract Radar view */
@@ -588,7 +588,7 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="standings.js?v=203ae071"></script>
 <script src="common-words.js?v=10537f26"></script>
 <script src="rosters.js?v=6000cb56"></script>
-<script src="home.js?v=dc07d46e"></script>
+<script src="home.js?v=c0af7022"></script>
 <script src="contract.js?v=387f5065"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
 </body>

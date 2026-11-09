@@ -13,6 +13,12 @@
     const players = CS.players || (window.GCD_ROWS || []).filter(r => ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"].includes(r[2])).length;
     const teams = CS.teams || (window.GCD_TEAMS || []).filter(t => t[1]).length;
     const nx = ALIGNED.find(d => Date.parse(d + "T23:59:00Z") >= NOW), days = nx ? Math.ceil((Date.parse(nx + "T23:59:00Z") - NOW) / MS) : null;
+    const tagsOf = i => {      // same tags as the feed: category, original language, then up to 3 topic tags (league tags are already shown as the league chip)
+      const lg = new Set(["LCK", "LEC", "LCS", "LPL", "LCP", "CBLOL", "LJL", "PCS", "VCS"]);
+      const tg = (i.tags || []).filter(x => !lg.has(x) && x !== i.category).slice(0, 3);
+      return `<span class="tag">${esc(i.category)}</span>${i.lang ? `<span class="tag" title="Original-language source">${esc(i.lang)}</span>` : ""}${tg.map(x => `<span class="tag">${esc(x)}</span>`).join("")}`;
+    };
+
     const latest = items.slice().sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen)).slice(0, 6);
     const ago = i => { const d = Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS)); return d === 0 ? "today" : d + "d ago"; };
     const t = typeof showTitle === "function" ? showTitle : (x => x);
@@ -38,7 +44,7 @@
         ${door("contract", "a", "Contract Radar", "Every listed contract by end date, a market board by role, what changed since the last snapshot, and how fresh each region's data is.", "Open Contract Radar")}
       </div>
       <div class="hmcols">
-        <section class="card"><h3 class="hmh">Latest moves and rumours</h3>${latest.length ? latest.map(i => `<div class="hmnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(t(i.title))}</a><span class="dim">${(window.Rosters && Rosters.leagueOf(i)) ? `<span class="lgtag">${esc(Rosters.leagueOf(i))}</span> ` : ""}${esc(i.source)} · ${ago(i)}</span></div>`).join("") : '<span class="dim">Nothing recent yet.</span>'}<button class="linkbtn" data-go-tab="feed" style="margin-top:8px">See the whole feed</button></section>
+        <section class="card"><h3 class="hmh">Latest moves and rumours</h3>${latest.length ? latest.map(i => `<div class="hmnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(t(i.title))}</a><span class="dim">${(window.Rosters && Rosters.leagueOf(i)) ? `<span class="lgtag">${esc(Rosters.leagueOf(i))}</span> ` : ""}${esc(i.source)} · ${ago(i)}</span><div class="hmtags">${tagsOf(i)}</div></div>`).join("") : '<span class="dim">Nothing recent yet.</span>'}<button class="linkbtn" data-go-tab="feed" style="margin-top:8px">See the whole feed</button></section>
         <section class="card"><h3 class="hmh">How it works</h3><ul class="hmlist">
           <li><b>News</b> is collected several times a day from LoL outlets (including Sheep Esports via Google News), YouTube and GitHub, then filtered to League of Legends moves only.</li>
           <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed with every full update, every few hours (GitHub can run these late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
