@@ -65,7 +65,7 @@ The **Contract Radar** tab is a native view of the same snapshot (`docs/contract
 
 | Part | How it updates |
 |---|---|
-| News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every ~10 min, `refresh.yml` every 3 h; filtered to League only |
+| News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every 15 min and `refresh.yml` every 3 h, as scheduled. In practice GitHub delays scheduled runs (observed gaps of 4-6 h), so expect several updates a day, not minutes; filtered to League only |
 | Contract data + change history | synced in `refresh.yml` from the Contract Radar site (which refreshes daily), behind the guard |
 | Site publishing | GitHub Pages on every push; script URLs are re-stamped automatically |
 | Tests | `ci.yml` runs on every push |

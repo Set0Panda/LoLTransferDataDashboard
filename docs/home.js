@@ -39,8 +39,8 @@
       <div class="hmcols">
         <section class="card"><h3 class="hmh">Latest moves and rumours</h3>${latest.length ? latest.map(i => `<div class="hmnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(t(i.title))}</a><span class="dim">${esc(i.source)} · ${ago(i)}</span></div>`).join("") : '<span class="dim">Nothing recent yet.</span>'}<button class="linkbtn" data-go-tab="feed" style="margin-top:8px">See the whole feed</button></section>
         <section class="card"><h3 class="hmh">How it works</h3><ul class="hmlist">
-          <li><b>News</b> is collected every few minutes from LoL outlets (including Sheep Esports via Google News), YouTube and GitHub, then filtered to League of Legends moves only.</li>
-          <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed daily. Each region's sheet is updated on its own schedule, so check how old it is.</li>
+          <li><b>News</b> is collected several times a day from LoL outlets (including Sheep Esports via Google News), YouTube and GitHub, then filtered to League of Legends moves only.</li>
+          <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed daily (GitHub can run these a few hours late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
           <li><b>Rumours</b> are read from headlines and are unconfirmed. A listed end date is not confirmed free agency: extensions often are not on the sheet yet.</li></ul></section>
       </div>
       <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter. Data updated ${esc(R.meta && R.meta.generated ? new Date(R.meta.generated).toLocaleString() : "—")}.</p>`;

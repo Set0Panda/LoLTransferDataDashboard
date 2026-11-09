@@ -1,6 +1,6 @@
 name: Fast news check
 on:
-  schedule: [{cron: "*/10 * * * *"}]   # GitHub's minimum is 5 min and it often runs late; 10 is realistic
+  schedule: [{cron: "7,22,37,52 * * * *"}]   # off-peak minutes; GitHub still delays scheduled runs by hours at busy times, so treat this as "several times a day"
   workflow_dispatch:
 permissions: {contents: write}
 concurrency: {group: radar-refresh, cancel-in-progress: false}   # never overlap the full refresh: they share the database
