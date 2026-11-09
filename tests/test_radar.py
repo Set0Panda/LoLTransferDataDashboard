@@ -145,3 +145,12 @@ def test_false_positives_are_dropped():
     assert nl("광주 출신 젠지 코치 ‘노바’ 박찬호, 롤드컵 결승 간다") == 0
     assert nl("BLG 对阵 T1 半决赛第三局BP 阵容公布") == 0
     assert nl("Sources: Pad set to join G2 Esports for LEC 2027 as Strategic Coach") > 0.5
+
+
+def test_celebrity_product_stories_are_not_moves():
+    from radar.classify import classify
+    nl = lambda t: classify({"title": t, "summary": "", "source_name": "x", "source_type": "newsletter"})[2]
+    assert nl("Faker and Chovy signed chessboard is being sold after League icons played with it") == 0
+    assert nl("Romance novel accused of basing protagonist on LoL icon Faker gets taken down") == 0
+    assert nl("Razer’s Project AVA lets you summon Faker as an AI hologram assistant on your desk") == 0
+    assert nl("Faker re-signs with T1 until 2030 & doesn’t plan to retire from LoL any time soon") > 0.5

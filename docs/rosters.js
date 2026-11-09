@@ -98,7 +98,7 @@
     playerItems = new Map(); teamItems = T.map(() => []); itemTeams = new Map();
   items.forEach(it => {
     if (NOW - Date.parse(it.published || it.seen) > 45 * MS) return;
-    const text = it.title + " " + (it.summary || "").slice(0, 300);
+    const text = it.title;      // headline only: a name buried in a summary or description is not what the story is about
     let low = norm(text);
     const hitTeams = new Set();
     teamPat.forEach(({ t, pats }) => {

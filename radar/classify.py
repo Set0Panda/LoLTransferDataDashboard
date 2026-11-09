@@ -23,6 +23,7 @@ NOISE = re.compile(
     r"|valorant|\bvct\b|\bcs2?\b|counter-strike|\bcsgo\b|rocket league|\brlcs\b|game changers|dota|overwatch|apex legends"
     r"|fortnite|\btft\b|teamfight tactics|wild rift|발로란트|瓦罗兰特|\biem\b|\bblast\b|\bpgl\b|mobile legends|\bmlbb\b"
     r"|pension|superfund|annuit|insurance|\bftse\b|asset manage|actuar|mortgage"      # "LCP" is also a UK pensions consultancy
+    r"|romance novel|chessboard|hologram|\bmerch\b|merchandise|plush|action figure|documentary|\brazer\b|auction|skins?\b"      # celebrity/product stories that say "signed" or "sold"
     r"|call of duty|rainbow six|duelist|initiator|\bigl\b|in-game leader|entry fragger|\bawper\b|\bvlr\b|\bhltv\b|vct ", re.I)
 
 # A headline that only matched on "coach"/"roster"/"lineup" (no transfer or contract wording) and is really about a match, a draft,
