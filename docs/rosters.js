@@ -117,6 +117,8 @@
     hitPlayers.forEach(c => {
       // a handle that is also a common word ("Life", "Time") only counts when its own team is named too
       if (COMMON.has(norm(c.p.name)) && !explicit.has(c.ti)) return;
+      // wiki-sourced coaches have short everyday-name handles ("Tom", "Ben", "Leo"): only count them when their team is also named
+      if (c.p.ext && norm(c.p.name).length < 6 && !explicit.has(c.ti)) return;
       // handle shared by several players: prefer the one whose team is also named in the item
       const same = handleIdx.get(norm(c.p.name)) || multiIdx.get(norm(c.p.name)) || [c]; if (same.length > 1 && !hitTeams.has(c.ti) && same.some(s => hitTeams.has(s.ti))) return;
       const k = c.ti + "|" + norm(c.p.name); if (!playerItems.has(k)) playerItems.set(k, []);
