@@ -20,9 +20,12 @@ def lp(params, post=False):
 t = json.loads(lp({"action": "query", "meta": "tokens", "type": "login"})[1])["query"]["tokens"]["logintoken"]
 print("LOGIN", lp({"action": "login", "lgname": os.environ["LEAGUEPEDIA_USER"], "lgpassword": os.environ["LEAGUEPEDIA_PASS"], "lgtoken": t}, True)[1][:120])
 print("FIELDS", lp({"action": "cargofields", "table": "RosterRumors"})[1][:1500]); time.sleep(3)
-print("SAMPLE", lp({"action": "cargoquery", "tables": "RosterRumors", "fields": "_pageName,Date_Sort,Player,Team,Status,Roles,Source,Tags,Confirmation,Date", "order_by": "Date_Sort DESC", "limit": 8})[1][:1800]); time.sleep(3)
-print("SAMPLE2", lp({"action": "cargoquery", "tables": "RosterRumors", "fields": "Date_Sort", "where": "Date_Sort>'2026-09-01'", "limit": 500})[1].count("Date Sort"), "rows since 1 Sep")
+F = "Date,Player,TeamStart,TeamEnd,RoleStart,RoleEnd,Status,SourceSite,SourceLink,IsOver,NotHappening"
+print("SAMPLE", lp({"action": "cargoquery", "tables": "RosterRumors", "fields": F, "order_by": "Date DESC", "limit": 12})[1][:3500]); time.sleep(3)
+print("COUNT", lp({"action": "cargoquery", "tables": "RosterRumors", "fields": "Player", "where": "Date>='2026-09-01'", "limit": 500})[1].count('"Player"'), "rumours since 1 Sep"); time.sleep(3)
+print("OPEN", lp({"action": "cargoquery", "tables": "RosterRumors", "fields": "Player,TeamEnd,Status", "where": "IsOver=0 AND NotHappening=0 AND Date>='2026-10-01'", "limit": 500})[1].count('"Player"'), "open (not over, not denied) since 1 Oct")
+import time as _t
 for name, url in [("r/lolesports new", "https://www.reddit.com/r/lolesports/new/.rss"),
                   ("r/LeagueOfLegends rumors search", "https://www.reddit.com/r/leagueoflegends/search.rss?q=flair%3ARumor&restrict_sr=1&sort=new"),
                   ("r/leagueoflegends new", "https://www.reddit.com/r/leagueoflegends/new/.rss")]:
-    st, body = get(url); print("REDDIT", name, st, len(body), body[:200].replace("\n", " "))
+    _t.sleep(8); st, body = get(url); print("REDDIT", name, st, len(body), body[:200].replace("\n", " "))
