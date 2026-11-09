@@ -12,6 +12,8 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LoL Transfer Radar">
 <meta name="twitter:description" content="League of Legends transfer tracker: provisional rosters for every major region, rumours and roster news from several sources, and a Contract Radar of expiring deals.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23101418'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%232a78d6' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='none' stroke='%232a78d6' stroke-width='2'/%3E%3Cpath d='M16 16 L26 9' stroke='%23eda100' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%2316c28a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#101418">
 <title>LoL Transfer Radar</title>
 <style>
   :root {
@@ -548,6 +550,7 @@ function loadLogos() {
   return _logos || (_logos = new Promise(res => { const e = document.createElement("script"); e.src = "contract/logos.js"; e.onload = e.onerror = () => res(); document.head.appendChild(e); }));
 }
 window.addEventListener("load", () => setTimeout(loadLogos, 300));
+let fromHistory = false, tabBootedOnce = false;
 function showTab(name) {
   if (tabBooted && window.goatcounter && goatcounter.count) goatcounter.count({ path: "/tab/" + name, title: "Tab: " + name });
   tabBooted = true;
@@ -556,10 +559,15 @@ function showTab(name) {
   [["Home", h], ["Rosters", r], ["Feed", f], ["Contract", c]].forEach(([k, on]) => $("tab" + k).setAttribute("aria-selected", on));
   if (h && window.HomeView) HomeView.render();
   if (c && window.ContractView) { ContractView.render(); loadLogos().then(() => !$("viewContract").hidden && ContractView.render()); }
-  if (history.replaceState) history.replaceState(null, "", h ? location.pathname + location.search : "#" + name);
+  const want = h ? location.pathname + location.search : "#" + name, cur = location.hash || location.pathname + location.search;
+  if (history.pushState && !fromHistory && tabBootedOnce && (h ? location.hash !== "" : location.hash !== "#" + name)) history.pushState(null, "", want);   // Back/Forward step between tabs
+  else if (history.replaceState) history.replaceState(null, "", want);
+  tabBootedOnce = true;
   if (f) renderTime(filtered());
   if (r && window.Rosters) { Rosters.render(); loadLogos().then(() => !$("viewRosters").hidden && Rosters.render()); }
 }
+const tabFromHash = () => ({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home";
+addEventListener("popstate", () => { fromHistory = true; try { showTab(tabFromHash()); } finally { fromHistory = false; } });
 $("tabHome").onclick = () => showTab("home");
 $("tabFeed").onclick = () => showTab("feed");
 $("tabRosters").onclick = () => showTab("rosters");
