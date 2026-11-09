@@ -67,11 +67,13 @@
 
   // ---- mentions from the transfer feed ----
   const COMMON = new Set((window.COMMON_WORDS || []).concat(["hype", "potential", "leave", "time", "life"]));   // handles that are also everyday words
-  const handleIdx = new Map();      // lowercased handle -> [{ti, p}]
+  const handleIdx = new Map();      // lowercased single-word handle -> [{ti, p}]
+  const multiIdx = new Map();       // multi-word handles ("Naak Nako", "Hans Sama") -> [{ti, p}]; matched as phrases so their words never match other players
   T.forEach(t => byTeam[t.i].concat(coaches[t.i]).forEach(p => {
-    const h = norm(p.name);
-    if (h.length < 3 || /\s/.test(h) || NAME_STOP.has(h)) return;
-    if (!handleIdx.has(h)) handleIdx.set(h, []); handleIdx.get(h).push({ ti: t.i, p });
+    const h = norm(p.name).replace(/\s+/g, " ").trim(), multi = / /.test(h);
+    if (multi ? h.length < 5 : (h.length < 3 || NAME_STOP.has(h))) return;
+    const idx = multi ? multiIdx : handleIdx;
+    if (!idx.has(h)) idx.set(h, []); idx.get(h).push({ ti: t.i, p });
   }));
   const teamPat = T.filter(t => t.i === canon[t.i]).map(t => {
     const pats = [norm(t.name)];
@@ -97,14 +99,16 @@
         }
       }
     });
+    const hitPlayers = [];
+    multiIdx.forEach((cands, h) => { if (new RegExp("(^|[^a-z0-9])" + h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(low)) { cands.forEach(c => hitPlayers.push(c)); low = low.split(h).join(" "); } });
     const toks = new Set(low.split(/[^a-z0-9.']+/).filter(Boolean));
-    const explicit = new Set(hitTeams), hitPlayers = []; itemTeams.set(it, explicit);
+    const explicit = new Set(hitTeams); itemTeams.set(it, explicit);
     toks.forEach(w => { if (handleIdx.has(w)) handleIdx.get(w).forEach(c => hitPlayers.push(c)); });
     hitPlayers.forEach(c => {
       // a handle that is also a common word ("Life", "Time") only counts when its own team is named too
       if (COMMON.has(norm(c.p.name)) && !explicit.has(c.ti)) return;
       // handle shared by several players: prefer the one whose team is also named in the item
-      const same = handleIdx.get(norm(c.p.name)); if (same.length > 1 && !hitTeams.has(c.ti) && same.some(s => hitTeams.has(s.ti))) return;
+      const same = handleIdx.get(norm(c.p.name)) || multiIdx.get(norm(c.p.name)) || [c]; if (same.length > 1 && !hitTeams.has(c.ti) && same.some(s => hitTeams.has(s.ti))) return;
       const k = c.ti + "|" + norm(c.p.name); if (!playerItems.has(k)) playerItems.set(k, []);
       if (!playerItems.get(k).includes(it)) playerItems.get(k).push(it);
       hitTeams.add(c.ti);
@@ -128,13 +132,19 @@
     });
     return out.sort((a, b) => a.at - b.at || b.len - a.len);
   }
-  const handleOf = str => { const w = String(str || "").replace(/[“”"'‘’]/g, "").trim().split(/\s+/).pop().replace(/[.,;:!?]+$/, ""); return /^[A-Za-z0-9ø.'-]{2,16}$/.test(w) && !NOT_HANDLE.has(w.toLowerCase()) ? w : null; };
+  const handleOf = str => {
+    const toks = String(str || "").replace(/[“”"'‘’]/g, "").trim().split(/\s+/).map(x => x.replace(/[.,;:!?]+$/, "")).filter(Boolean);
+    // multi-word handles first ("Naak Nako", "Hans Sama"): taking only the last word would turn them into other players ("Nako", "Sama")
+    for (const n of [3, 2]) { if (toks.length >= n) { const j = toks.slice(-n).join(" "); if (multiIdx.has(norm(j))) return j; } }
+    const w = toks.pop() || "";
+    return /^[A-Za-z0-9ø.'-]{2,16}$/.test(w) && !NOT_HANDLE.has(w.toLowerCase()) ? w : null;
+  };
   const roleFrom = str => { for (const [r, re] of ROLEWORDS) if (re.test(str || "")) return r; return ""; };
   function buildRumours() {
     rumIn = T.map(() => []); rumOut = new Map(); rumAway = new Map(); RUMITEMS = new Map();
     const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo) && NOW - Date.parse(i.published || i.seen) < RUM_DAYS * MS);
     const addIn = (name, ti, role, fromTi, it) => {
-      const h = norm(name), cand = handleIdx.get(h) || [];
+      const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];
       if (!role) { const c = cand.find(x => STARTERS.includes(x.p.role) || x.p.role === "COACH"); role = c ? c.p.role : ""; }
       const own = cand.find(c => c.ti === ti); if (own && own.p.ms != null && own.p.ms > cut) return;                    // already signed there on the sheet
       if (incoming[ti].some(x => norm(x.name) === h)) return;                                                         // already confirmed in overrides
