@@ -214,14 +214,15 @@
     return `<div class="hint" style="margin:0 0 10px">Problems in the source sheets, so you know what not to trust. An old sheet means old dates; "off calendar" end dates are not on Riot's aligned dates, which is normal for mid-season deals.</div>
       <div class="tablewrap"><table class="crhl"><thead><tr><th>Region</th><th>Sheet</th><th>Ended, still listed</th><th>No end date</th><th>Missing role</th><th>Duplicates removed</th><th>Off-calendar end dates</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${findingsOpen()}
-      <p class="hint">KR roles are not in Riot's sheet; they come from Leaguepedia and are marked * in the radar. Contract data: Riot's League-Recognized Contract Database, via <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc(META.asOf || "?")}). Unofficial fan project, not affiliated with Riot Games.</p>`;
+      <p class="hint">KR roles are not in Riot's sheet; they come from Leaguepedia and are marked * in the radar. Contract data: Riot's League-Recognized Contract Database, via <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc(META.asOf || "?")}). Unofficial fan project, not affiliated with Riot Games.</p>
+      <p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""}</p>`;
   }
 
   const SUBS = [["radar", "Expiry radar", radar], ["market", "Market board", market], ["changes", "What changed", changes], ["health", "Data health", health]];
   function render() {
     NOW = Date.now();
     const body = SUBS.find(s => s[0] === S.sub)[2]();
-    box.innerHTML = `<div class="crsubs"><span class="seg" style="margin-left:0">${SUBS.map(([k, l]) => `<button class="chip" data-sub="${k}" aria-pressed="${S.sub === k}">${l}${k === "changes" && HIST.length ? ` <span class="n">${HIST.length}</span>` : ""}</button>`).join("")}</span></div>${head()}${body}`;
+    box.innerHTML = `<div class="crsubs"><span class="seg" style="margin-left:0">${SUBS.map(([k, l]) => `<button class="chip" data-sub="${k}" aria-pressed="${S.sub === k}">${l}${k === "changes" && HIST.length ? ` <span class="n">${HIST.length}</span>` : ""}</button>`).join("")}</span></div>${head()}${body}${S.sub === "health" ? "" : `<p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""}</p>`}`;
     const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(e => e[ev] = fn);
     on("[data-sub]", "onclick", e => { S.sub = e.currentTarget.dataset.sub; render(); });
     on("[data-reg]", "onclick", e => { const g = e.currentTarget.dataset.reg; S.regs.has(g) ? S.regs.delete(g) : S.regs.add(g); S.lg = ""; S.shown = 100; render(); });

@@ -44,7 +44,8 @@
           <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed with every full update, every few hours (GitHub can run these late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
           <li><b>Rumours</b> are read from headlines and are unconfirmed. A listed end date is not confirmed free agency: extensions often are not on the sheet yet.</li></ul></section>
       </div>
-      <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter. <span class="js-status">${esc(window.statusTxt || "")}</span>.</p>`;
+      <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter.</p>
+      <p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""} <span class="js-status">${esc(window.statusTxt || "")}</span>.</p>`;
     box.querySelectorAll("[data-league]").forEach(b => b.onclick = () => {
       const [g, l] = b.dataset.league.split("|");
       if (window.Rosters && Rosters.setLeague) Rosters.setLeague(g + "|" + l);

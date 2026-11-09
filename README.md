@@ -63,3 +63,5 @@ Python 3.10+, standard library only (pytest for tests).
 Config lives in `config.json`; categories and scoring in `radar/classify.py` and `radar/scoring.py` (quality = engagement 35% + relevance 25% + authority 20% + freshness 20%).
 
 Visit counts use GoatCounter (no cookies, no personal data); set `docs/site-config.js` to `""` to turn it off. Contract data and logos come from [Contract Radar](https://set0panda.github.io/contract-radar/). Team logos are trademarks of their owners.
+
+Some data (league standings, LCK and LPL coaches, KR roles, roster-change records) comes from [Leaguepedia](https://lol.fandom.com), © Fandom, Inc., used under [CC BY-SA 3.0](https://www.fandom.com/licensing).

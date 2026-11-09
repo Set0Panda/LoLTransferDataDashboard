@@ -339,6 +339,7 @@
       ${strip}
       ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>
+      <p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""}</p>
       ${Object.keys(extC).length ? `<p class="hint"><sup>*</sup> Coaches marked with an asterisk are not in Riot's sheet, which has none for LCK and LPL. They come from <a href="https://lol.fandom.com/wiki/Portal:Rosters" target="_blank" rel="noopener">Leaguepedia</a> roster changes${(window.EXT_COACHES || {}).updated ? ` (synced ${esc(window.EXT_COACHES.updated)})` : ""} and can lag the real world, since the wiki is volunteer-edited.</p>` : ""}`;
     const rq = document.getElementById("rq");
     rq.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = document.getElementById("rq"); n.focus(); n.setSelectionRange(pos, pos); };
