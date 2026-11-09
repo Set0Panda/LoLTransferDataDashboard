@@ -91,6 +91,14 @@
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
   });
+  // "Karmine Corp Blue", "Fnatic Academy", "T1 Esports Academy": a team name followed by a sub-team word is the sub-team, not the main team
+  const SUBW = /^[^a-z0-9]*(blue|academy|challengers?|youth|rookies|junior|bee|global|ii)(?![a-z0-9])/;
+  const plainHit = (hay, needle, trail) => { let i = hay.indexOf(needle); while (i >= 0) { if (!SUBW.test(hay.slice(i + needle.length - (trail ? 0 : 0)))) return i; i = hay.indexOf(needle, i + 1); } return -1; };
+  const codeHit = (text, code) => {
+    const re = new RegExp("(^|[^A-Za-z0-9])" + code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-z0-9])", "g"); let m;
+    while ((m = re.exec(text))) if (!SUBW.test(text.slice(m.index + m[0].length).toLowerCase())) return true;
+    return false;
+  };
   let playerItems = new Map(), teamItems = T.map(() => []), itemTeams = new Map(), itemAny = new Map();
   function buildMentions() {
     NOW = Date.now();
@@ -103,7 +111,7 @@
     const hitTeams = new Set();
     teamPat.forEach(({ t, pats }) => {
       for (const p of pats) {
-        if (typeof p === "string" ? (p.length >= 4 && low.includes(p)) : new RegExp("(^|[^A-Za-z0-9])" + p.code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^A-Za-z0-9]|$)").test(text)) {
+        if (typeof p === "string" ? (p.length >= 4 && plainHit(low, p) >= 0) : codeHit(text, p.code)) {
           hitTeams.add(t.i); if (typeof p === "string") low = low.split(p).join(" ");   // "Hanwha Life" must not match a player called Life
           break;
         }
@@ -139,8 +147,8 @@
     teamPat.forEach(({ t, pats }) => {
       for (const p of pats) {
         const code = typeof p !== "string", needle = tnorm(code ? p.code : p);
-        if (code ? !(atStartCodes && hay.startsWith(needle)) : (p.length < 4 || !hay.includes(needle))) continue;
-        out.push({ ti: t.i, at: code ? 0 : hay.indexOf(needle), len: needle.length }); break;
+        if (code ? !(atStartCodes && hay.startsWith(needle) && !SUBW.test(hay.slice(needle.length))) : (p.length < 4 || plainHit(hay, needle) < 0)) continue;
+        out.push({ ti: t.i, at: code ? 0 : plainHit(hay, needle), len: needle.length }); break;
       }
     });
     return out.sort((a, b) => a.at - b.at || b.len - a.len);
@@ -195,7 +203,8 @@
     });
     // Leaguepedia RosterRumors (docs/rumors-extra.js): open rumours only; confirmed ones reach the sheet/overrides, denied ones are dropped
     const wikiTeam = s => {
-      const n = norm(s).replace(/[^a-z0-9]/g, ""); if (!n) return null;
+      let n = norm(s).replace(/[^a-z0-9]/g, ""); if (!n) return null;
+      n = { karminecorpblue: "kcb", kcblue: "kcb" }[n] || n;
       const hit = T.find(t => t.i === canon[t.i] && (norm(t.name).replace(/[^a-z0-9]/g, "") === n || (t.code || "").toLowerCase() === n));
       if (hit) return hit.i; const m = teamsIn(s, true)[0]; return m ? canon[m.ti] : null;
     };
@@ -203,6 +212,7 @@
     if (ER && Array.isArray(ER.rows) && !(window.RADAR && window.RADAR.meta && window.RADAR.meta.demo)) ER.rows.forEach(([date, pl, ts, te, rs, re, status, site, url, over, denied]) => {
       const t0 = Date.parse(date); if (over || denied || !pl || !(NOW - t0 < RUM_DAYS * MS)) return;
       const a = wikiTeam(ts), b = wikiTeam(te), role = roleFrom(re || rs);
+      if (a != null && a === b) return;                    // "set to continue with X": not a move
       const it = { title: pl + (a != null && b != null ? ` (${T[a].name} to ${T[b].name})` : b != null ? ` to ${T[b].name}` : a != null ? ` leaving ${T[a].name}` : ""), url, source: site || "Leaguepedia", category: "Leaguepedia rumour",
                    published: date, seen: date, quality: .8, wiki: { status: (status || "Rumour").replace(/^rumor$/i, "Rumour"), date } };
       if (b != null) addIn(pl, b, role, a, it); else if (a != null) addOut(pl, a, it);
