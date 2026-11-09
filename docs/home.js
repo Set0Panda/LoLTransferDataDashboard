@@ -18,7 +18,7 @@
     const t = typeof showTitle === "function" ? showTitle : (x => x);
     const tile = (n, l, k) => `<div class="hmtile t${k}"><b>${esc(n)}</b><span>${esc(l)}</span></div>`;
     const RL = window.GCD_REGLOGOS || {}, REG = [["KR", "LCK"], ["EMEA", "LEC"], ["AME", "LCS"], ["CN", "LPL"], ["LCP", "LCP"]];
-    const regs = REG.filter(([g]) => RL[g]).map(([g, l]) => `<span class="hmreg" title="${g}"><img alt="" src="data:image/webp;base64,${RL[g]}"><b>${l}</b></span>`).join("");
+    const regs = REG.filter(([g]) => RL[g]).map(([g, l]) => `<button type="button" class="hmreg" data-league="${g}|${l}" title="Open ${l} rosters"><img alt="" src="data:image/webp;base64,${RL[g]}"><b>${l}</b></button>`).join("");
     const radar = `<svg class="hmradar" viewBox="0 0 240 240" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-opacity=".28"><circle cx="120" cy="120" r="108"/><circle cx="120" cy="120" r="76"/><circle cx="120" cy="120" r="44"/><path d="M120 12v216M12 120h216" stroke-opacity=".16"/></g><path class="hmsweep" d="M120 120L120 12A108 108 0 0 1 214 66Z" fill="var(--accent)" fill-opacity=".22"/><circle class="hmblip" cx="170" cy="70" r="5" fill="var(--ok)"/><circle class="hmblip b2" cx="70" cy="150" r="5" fill="var(--warn)"/><circle class="hmblip b3" cx="150" cy="170" r="5" fill="var(--accent)"/><circle class="hmblip b4" cx="92" cy="72" r="4" fill="var(--ok)"/></svg>`;
     const ico = {
       rosters: '<svg viewBox="0 0 24 24"><path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/></svg>',
@@ -26,7 +26,7 @@
       contract: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>' };
     const door = (go, tone, h, p, cta) => `<button class="hmdoor ${tone}" data-go-tab="${go}"><span class="hmico">${ico[go]}</span><h3>${h}</h3><p>${p}</p><span class="hmcta">${cta} <i>→</i></span></button>`;
     box.innerHTML = `
-      <section class="hmhero">${radar}<div class="hmhtxt"><span class="hmkick"><i class="live"></i>Live · updated ${esc(R.meta && R.meta.generated ? new Date(R.meta.generated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "recently")}</span>
+      <section class="hmhero">${radar}<div class="hmhtxt"><span class="hmkick"><i class="live js-dot"></i><span class="js-status">${esc(window.statusTxt || "Live")}</span></span>
         <h2>Every League of Legends roster move, rumour and contract expiry <em>in one place.</em></h2>
         <p>LoL Transfer Radar combines Riot's contract database with transfer news from the LoL press, so you can see who is out of contract, who is linked with whom, and what each team's lineup could look like next season.</p>
         <div class="hmbtns"><button class="chip hmprimary" data-go-tab="rosters">See provisional rosters</button><button class="chip" data-go-tab="contract">Who is out of contract</button><button class="chip" data-go-tab="feed">Read the feed</button></div>
@@ -41,10 +41,15 @@
         <section class="card"><h3 class="hmh">Latest moves and rumours</h3>${latest.length ? latest.map(i => `<div class="hmnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(t(i.title))}</a><span class="dim">${esc(i.source)} · ${ago(i)}</span></div>`).join("") : '<span class="dim">Nothing recent yet.</span>'}<button class="linkbtn" data-go-tab="feed" style="margin-top:8px">See the whole feed</button></section>
         <section class="card"><h3 class="hmh">How it works</h3><ul class="hmlist">
           <li><b>News</b> is collected several times a day from LoL outlets (including Sheep Esports via Google News), YouTube and GitHub, then filtered to League of Legends moves only.</li>
-          <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed daily (GitHub can run these a few hours late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
+          <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed with every full update, every few hours (GitHub can run these late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
           <li><b>Rumours</b> are read from headlines and are unconfirmed. A listed end date is not confirmed free agency: extensions often are not on the sheet yet.</li></ul></section>
       </div>
-      <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter. Data updated ${esc(R.meta && R.meta.generated ? new Date(R.meta.generated).toLocaleString() : "—")}.</p>`;
+      <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter. <span class="js-status">${esc(window.statusTxt || "")}</span>.</p>`;
+    box.querySelectorAll("[data-league]").forEach(b => b.onclick = () => {
+      const [g, l] = b.dataset.league.split("|");
+      if (window.Rosters && Rosters.setLeague) Rosters.setLeague(g + "|" + l);
+      showTab("rosters"); window.scrollTo({ top: 0 });
+    });
     box.querySelectorAll("[data-go-tab]").forEach(b => b.onclick = () => { showTab(b.dataset.goTab); window.scrollTo({ top: 0 }); });
   }
   window.HomeView = { render };

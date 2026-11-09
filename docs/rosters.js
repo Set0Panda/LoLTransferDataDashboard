@@ -392,6 +392,6 @@
     if (e.target.closest(".rdx") || e.target === back) closeDrawer();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && DR) closeDrawer(); });
-  window.Rosters = { render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
+  window.Rosters = { setLeague(k) { if (leaguesWithPlayers.includes(k)) { S.lg = k; S.q = ""; } }, render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
   render();
 })();

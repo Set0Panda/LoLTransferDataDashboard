@@ -187,7 +187,8 @@
   .hmhero h2 { margin:0 0 12px; font-size:34px; line-height:1.15; letter-spacing:-.025em; } .hmhero h2 em { font-style:normal; color:var(--accent); }
   .hmhero p { margin:0 0 18px; color:var(--ink2); font-size:15px; }
   .hmbtns { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; } .hmbtns .chip { padding:8px 16px; font-size:14px; } .hmprimary { background:var(--chip-on); color:var(--chip-on-ink); } .hmbtns .chip:hover { filter:brightness(1.08); }
-  .hmregs { display:flex; flex-wrap:wrap; gap:8px; } .hmreg { display:inline-flex; align-items:center; gap:6px; background:color-mix(in srgb,var(--surface) 75%,transparent); border:1px solid var(--line); border-radius:10px; padding:4px 10px 4px 8px; font-size:12px; }
+  .hmregs { display:flex; flex-wrap:wrap; gap:8px; } .hmreg { font:inherit; color:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:6px; background:color-mix(in srgb,var(--surface) 75%,transparent); border:1px solid var(--line); border-radius:10px; padding:4px 10px 4px 8px; font-size:12px; }
+  .hmreg:hover { border-color:var(--ink3); } .hmreg:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .hmreg img { height:20px; width:auto; max-width:34px; object-fit:contain; }
   :root[data-theme="dark"] .hmreg img { filter:drop-shadow(0 0 1px rgba(255,255,255,.6)); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hmreg img { filter:drop-shadow(0 0 1px rgba(255,255,255,.6)); } }
@@ -514,6 +515,9 @@ function genLabel() {
   const h = checkAge / 36e5, colour = h < 3 ? "var(--ok)" : h < 8 ? "var(--warn)" : "#d4584a";
   const txt = LASTRUN && LASTRUN > Date.parse(D.meta.generated) + 6e4
     ? `Checked ${agoStr(checkAge)} · new items ${agoStr(dataAge)}` : `Updated ${agoStr(dataAge)}`;
+  window.statusTxt = txt;   // Home's hero and footer show this same text, so every timestamp on the site agrees
+  document.querySelectorAll(".js-status").forEach(e => { e.textContent = txt; });
+  document.querySelectorAll(".js-dot").forEach(e => { e.style.background = colour; });
   $("gen").innerHTML = `<span class="live" style="background:${colour}" title="This page re-reads the data every minute. The dot shows how recently the update job ran: green under 3 h, amber under 8 h. GitHub delays scheduled jobs, so gaps of a few hours are normal."></span> ${txt}`;
 }
 genLabel(); setInterval(genLabel, 30000); fetchLastRun(); setInterval(fetchLastRun, 5 * 6e4);
@@ -572,8 +576,8 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="roster-overrides.js?v=209058d6"></script>
 <script src="standings.js?v=203ae071"></script>
 <script src="common-words.js?v=10537f26"></script>
-<script src="rosters.js?v=7d15ddf2"></script>
-<script src="home.js?v=8931248a"></script>
+<script src="rosters.js?v=db627677"></script>
+<script src="home.js?v=85d4de94"></script>
 <script src="contract.js?v=838de501"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
 </body>
