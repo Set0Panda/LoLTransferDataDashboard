@@ -67,6 +67,7 @@ The **Contract Radar** tab is a native view of the same snapshot (`docs/contract
 |---|---|
 | News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every 15 min and `refresh.yml` every 3 h, as scheduled. In practice GitHub delays scheduled runs (observed gaps of 4-6 h), so expect several updates a day, not minutes; filtered to League only |
 | Contract data + change history | pulled straight from Riot's sheet by `scripts/contract_refresh.js` (Contract Radar's own script and guard) on every full refresh; falls back to Contract Radar's published copy if the sheet is unreachable |
+| External timer | cron-job.org calls GitHub's `workflow_dispatch` on `fast.yml` every 15 min and `refresh.yml` every 3 h, because GitHub's own scheduler runs hours late. It uses a fine-grained token (Actions: read and write, this repo only) stored in cron-job.org; **it expires after a year, so renew it then** or the timer silently stops (the built-in schedules still run as a slow backup). The header dot goes amber/red when runs stop arriving |
 | LCK / LPL coaches | `scripts/coach_sync.py` on every full refresh, from Leaguepedia roster changes (bot login in secrets `LEAGUEPEDIA_USER` / `LEAGUEPEDIA_PASS`); skips itself if the login is missing or the result looks wrong. Marked `*` on the cards; `docs/coaches-manual.js` can add or override |
 | Site publishing | GitHub Pages on every push; script URLs are re-stamped automatically |
 | Tests | `ci.yml` runs on every push |
