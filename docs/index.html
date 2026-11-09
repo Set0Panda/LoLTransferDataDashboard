@@ -236,7 +236,8 @@
   .crfi { display:grid; grid-template-columns:70px 1.2fr 1.1fr 2.4fr; gap:10px; align-items:baseline; padding:8px 0; border-top:1px solid var(--line); font-size:13px; } .crfi .crt { justify-self:start; }
   .crfm { min-width:0; } .crfd { color:var(--ink2); }
   @media (max-width:760px) { .crfi { grid-template-columns:70px 1fr; } .crfi .crfm, .crfi .crfd { grid-column:1 / -1; } }
-  .rum { margin-top:3px; font-size:13px; } .rumo { color:var(--warn); font-size:11px; margin-left:4px; white-space:nowrap; }
+  .rnw { white-space:nowrap; } .rlink { display:inline-flex; vertical-align:middle; margin-left:6px; color:var(--ink3); } .rlink:hover { color:var(--ink); }
+  .rlink { display:inline-flex; vertical-align:middle; margin-left:6px; color:var(--ink3); } .rlink:hover { color:var(--ink); } .rum { margin-top:3px; font-size:13px; } .rumo { color:var(--warn); font-size:11px; margin-left:4px; white-space:nowrap; }
   .rnote { font-weight:400; letter-spacing:0; text-transform:none; color:var(--ink3); font-size:11px; }
   .pn.hl .pl { background:color-mix(in srgb, var(--warn) 30%, transparent); border-radius:4px; padding:0 4px; }
   @media (prefers-reduced-motion: reduce) { #rdrawer { transition:none; } }
@@ -580,11 +581,12 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="contract/regions.js"></script>
 <script src="contract/history.js"></script>
 <script src="coaches-extra.js?v=966d8bd5"></script>
+<script src="rumors-extra.js?v=9e7b2c8f"></script>
 <script src="coaches-manual.js?v=ec62e061"></script>
 <script src="roster-overrides.js?v=209058d6"></script>
 <script src="standings.js?v=203ae071"></script>
 <script src="common-words.js?v=10537f26"></script>
-<script src="rosters.js?v=4f88ad52"></script>
+<script src="rosters.js?v=dd25069f"></script>
 <script src="home.js?v=319abbf6"></script>
 <script src="contract.js?v=387f5065"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>

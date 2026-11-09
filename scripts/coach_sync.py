@@ -13,6 +13,8 @@ API = "https://lol.fandom.com/api.php"
 UA = "LoLTransferRadar/1.0 (https://github.com/Set0Panda/LoLTransferDataDashboard; contact via GitHub)"
 OUT = os.path.join(os.path.dirname(__file__), "..", "docs", "coaches-extra.js")
 DATA = os.path.join(os.path.dirname(__file__), "..", "docs", "contract", "data.js")
+RUM_OUT = os.path.join(os.path.dirname(__file__), "..", "docs", "rumors-extra.js")
+RUM_DAYS = 45
 MIN_ROWS = 8          # fewer than this = something is wrong, keep old file
 DRY = "--dry" in sys.argv
 
@@ -50,6 +52,35 @@ def our_teams():
     teams = json.loads(re.search(r"GCD_TEAMS\s*=\s*(\[.*?\]);", s, re.S).group(1))
     return [t[2] for t in teams if t[1] in ("LCK", "LPL")]
 
+def rumors():
+    """Recent RosterRumors rows (all regions) -> docs/rumors-extra.js. Failure keeps the old file."""
+    since = (datetime.date.today() - datetime.timedelta(days=RUM_DAYS)).isoformat()
+    rows, off = [], 0
+    while True:
+        j = call({"action": "cargoquery", "tables": "RosterRumors",
+                  "fields": "Date,Player,TeamStart,TeamEnd,RoleStart,RoleEnd,Status,SourceSite,SourceLink,IsOver,NotHappening",
+                  "where": f"Date>='{since}'", "order_by": "Date DESC", "limit": 500, "offset": off})
+        if "cargoquery" not in j:
+            print("rumors: query failed, keeping existing file:", json.dumps(j)[:300]); return
+        part = [x["title"] for x in j["cargoquery"]]; rows += part
+        if len(part) < 500 or off >= 1000: break
+        off += 500; time.sleep(3)
+    clean = lambda v: re.sub(r"\s+", " ", (v or "")).strip()
+    out = []
+    for r in rows:
+        link = clean(r.get("SourceLink"))
+        if not clean(r.get("Player")) or not (link.startswith("http://") or link.startswith("https://")): continue
+        out.append([(r.get("Date") or "")[:10], re.sub(r"\s*\(.*?\)\s*$", "", clean(r["Player"])), clean(r.get("TeamStart")), clean(r.get("TeamEnd")),
+                    clean(r.get("RoleStart")), clean(r.get("RoleEnd")), clean(r.get("Status")), clean(r.get("SourceSite")), link,
+                    1 if clean(r.get("IsOver")) in ("1", "Yes", "yes") else 0, 1 if clean(r.get("NotHappening")) in ("1", "Yes", "yes") else 0])
+    print(f"rumors: {len(rows)} rows, {len(out)} kept ({sum(1 for o in out if not o[9] and not o[10])} open)")
+    if not out:
+        print("rumors: nothing usable, keeping existing file"); return
+    body = "// Written by scripts/coach_sync.py from Leaguepedia (RosterRumors). Do not edit by hand.\n" \
+           "window.EXT_RUMORS = " + json.dumps({"updated": datetime.date.today().isoformat(), "rows": out}, ensure_ascii=False) + ";\n"
+    if DRY: print("rumors: --dry, not writing"); return
+    open(RUM_OUT, "w", encoding="utf-8").write(body); print("rumors: wrote", RUM_OUT)
+
 def main():
     user, pw = os.environ.get("LEAGUEPEDIA_USER"), os.environ.get("LEAGUEPEDIA_PASS")
     if not (user and pw):
@@ -70,6 +101,9 @@ def main():
                       "order_by": "Date_Sort DESC", "limit": 5}); time.sleep(3)
             print("PROBE", name, "->", json.dumps(j, ensure_ascii=False)[:900])
         return
+    try: rumors()
+    except Exception as e: print("rumors: unexpected error, keeping existing file:", repr(e))
+    time.sleep(3)
     mine = {norm(n): n for n in our_teams()}
     # all coach/staff roster events since mid-2024, oldest first, so the latest event per person wins
     events, off = [], 0

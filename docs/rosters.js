@@ -192,6 +192,20 @@
         if (rp) addOut(rp[1], tm.ti, it);
       }
     });
+    // Leaguepedia RosterRumors (docs/rumors-extra.js): open rumours only; confirmed ones reach the sheet/overrides, denied ones are dropped
+    const wikiTeam = s => {
+      const n = norm(s).replace(/[^a-z0-9]/g, ""); if (!n) return null;
+      const hit = T.find(t => t.i === canon[t.i] && (norm(t.name).replace(/[^a-z0-9]/g, "") === n || (t.code || "").toLowerCase() === n));
+      if (hit) return hit.i; const m = teamsIn(s, true)[0]; return m ? canon[m.ti] : null;
+    };
+    const ER = window.EXT_RUMORS;
+    if (ER && Array.isArray(ER.rows) && !(window.RADAR && window.RADAR.meta && window.RADAR.meta.demo)) ER.rows.forEach(([date, pl, ts, te, rs, re, status, site, url, over, denied]) => {
+      const t0 = Date.parse(date); if (over || denied || !pl || !(NOW - t0 < RUM_DAYS * MS)) return;
+      const a = wikiTeam(ts), b = wikiTeam(te), role = roleFrom(re || rs);
+      const it = { title: pl + (a != null && b != null ? ` (${T[a].name} to ${T[b].name})` : b != null ? ` to ${T[b].name}` : a != null ? ` leaving ${T[a].name}` : ""), url, source: site || "Leaguepedia", category: "Leaguepedia rumour",
+                   published: date, seen: date, quality: .8, wiki: { status: status || "Rumour", date } };
+      if (b != null) addIn(pl, b, role, a, it); else if (a != null) addOut(pl, a, it);
+    });
   }
   buildMentions(); buildRumours();
   const rank = it => it.quality * Math.pow(.5, (NOW - Date.parse(it.published || it.seen)) / MS / 14);
@@ -244,7 +258,9 @@
   const uniq = arr => { const seen = new Set(); return arr.filter(i => { const k = norm(i.title).replace(/[^a-z0-9]/g, ""); return seen.has(k) ? false : (seen.add(k), true); }); };   // same headline via two links
   const PARTS = {}, isScoop = i => /^\s*sources?:/i.test(i.title);
   const nSrc = items => new Set(items.map(i => i.source)).size;
-  const rumLine = (ti, r, tag = true) => `<div class="rum">${tag ? '<span class="tagr">RUMOUR</span> ' : ""}<span class="pl">${esc(r.name)}</span>${r.from != null ? ` <span class="ex">from ${esc(T[r.from].name)}</span>` : ""} <button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(r.name)}">${r.items.length} ${r.items.length === 1 ? "report" : "reports"}</button></div>`;                       // per-team HTML pieces, reused by the side panel
+  const LINK_SVG = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 9.5l3-3M7 4.5l1-1a2.5 2.5 0 013.5 3.5l-1 1M9 11.5l-1 1A2.5 2.5 0 014.5 9l1-1"/></svg>';
+  const srcLink = items => { const it = best(items).sort((a, b) => (b.wiki ? 1 : 0) - (a.wiki ? 1 : 0))[0]; return it && it.url ? `<a class="rlink" href="${esc(it.url)}" target="_blank" rel="noopener" title="Open source: ${esc(it.source || "")}" aria-label="Open source: ${esc(it.source || "")}">${LINK_SVG}</a>` : ""; };
+  const rumLine = (ti, r, tag = true) => `<div class="rum">${tag ? '<span class="tagr">RUMOUR</span> ' : ""}<span class="pl">${esc(r.name)}</span>${r.from != null ? ` <span class="ex">from ${esc(T[r.from].name)}</span>` : ""} <span class="rnw"><button type="button" class="rflag" data-tm="${ti}" data-pl="${esc(r.name)}">${r.items.length} ${r.items.length === 1 ? "report" : "reports"}</button>${srcLink(r.items)}</span></div>`;                       // per-team HTML pieces, reused by the side panel
   const ageD = i => Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS));
 
   function card(t) {
@@ -352,7 +368,7 @@
   // ---- side panel: team + roster + every news item that names the team or a player ----
   const dr = document.getElementById("rdrawer"), back = document.getElementById("rd-back");
   let DR = null, lastFocus = null;
-  const newsLi = i => `<li class="dn"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a><div class="ex">${esc(i.source)} · ${ageD(i)}d · ${esc(i.category)}</div></li>`;
+  const newsLi = i => `<li class="dn"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a><div class="ex">${i.wiki ? `<b>${esc(i.wiki.status)}</b> · ${esc(i.source)} · ${esc(i.wiki.date)} · via Leaguepedia` : `${esc(i.source)} · ${ageD(i)}d · ${esc(i.category)}`}</div></li>`;
   function paint() {
     if (!dr || !DR) return;
     const t = T[DR.ti]; if (!PARTS[t.i]) card(t);
