@@ -369,7 +369,7 @@
     if (S.only) cards = cards.filter(c => c.flagged);
     const strip = (VIEW === "cards" && !q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.projected}/5 projected">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.projected}/5</span></button>`).join("")}</div>` : "";
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
-    const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Signings and releases since then aren't here unless you add them in <code>roster-overrides.js</code>.</div>` : "";
+    const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Moves since then may be missing.</div>` : "";
     const sv = ST.leagues && ST.leagues[lg];
     const sAge = ST.asOf ? Math.floor((NOW - Date.parse(ST.asOf + "T00:00:00Z")) / MS) : null;
     const sWarn = sAge != null && sAge > 21 && !q ? `<div class="rwarn"><b>League rankings are ${sAge} days old</b> (as of ${esc(ST.asOf)}). They are copied by hand, so card order may have drifted. Refresh <code>standings.js</code> (see README).</div>` : "";
