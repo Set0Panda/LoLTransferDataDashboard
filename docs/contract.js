@@ -132,7 +132,7 @@
 
   // ---- Data health ----
   function health() {
-    const regs = REGS.filter(g => regCount[g] || (META.updated && META.updated[g]));
+    const regs = REGS.filter(g => (regCount[g] || (META.updated && META.updated[g])) && (!S.regs.size || S.regs.has(g)));
     const rows = regs.map(g => {
       const pl = P.filter(p => p.t.reg === g && p.player), a = age(g), [lab, tone] = ageTag(a);
       const ended = pl.filter(p => p.ms != null && p.ms < NOW).length, noEnd = pl.filter(p => p.ms == null).length;
