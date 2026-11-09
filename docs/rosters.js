@@ -11,7 +11,7 @@
   const ALIGNED = ["2026-11-16", "2027-11-15", "2028-11-20", "2029-11-19", "2030-11-18"];   // same calendar as Contract Radar
   const TOP_LG = { LEC: 1, LCS: 1, LPL: 1, LCK: 1, LCP: 1, CBLOL: 1 };
   const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const META = window.GCD_META || { updated: {} }, LOGOS = window.GCD_LOGOS || {}, XR = window.GCD_XROLES || {};
+  const META = window.GCD_META || { updated: {} }, LOGOS = new Proxy({}, { get: (_, k) => (window.GCD_LOGOS || {})[k] }), XR = window.GCD_XROLES || {};
   const MENTION_CATS = new Set(["Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements"]);
   const CODE_STOP = new Set(["RED", "LOS", "ES", "JL", "SR", "IJC", "BKR", "FAST8"]);
   const NAME_STOP = new Set(["top","mid","bot","support","jungle","sub","coach","team","gen","new","one","two","the","lol","riot","worlds","msi","lck","lec","lcs","lpl"]);

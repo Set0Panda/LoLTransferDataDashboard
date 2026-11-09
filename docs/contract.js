@@ -9,7 +9,7 @@
   const STARTERS = ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"], ROLES = STARTERS.concat(["SUB", "COACH", "STAFF"]);
   const REGS = ["AME", "CN", "EMEA", "KR", "LCP"];
   const ALIGNED = ["2026-11-16", "2027-11-15", "2028-11-20", "2029-11-19", "2030-11-18"];
-  const META = window.GCD_META || { updated: {} }, LOGOS = window.GCD_LOGOS || {}, XR = window.GCD_XROLES || {}, RL = window.GCD_REGLOGOS || {};
+  const META = window.GCD_META || { updated: {} }, LOGOS = new Proxy({}, { get: (_, k) => (window.GCD_LOGOS || {})[k] }), XR = window.GCD_XROLES || {}, RL = window.GCD_REGLOGOS || {};
   const HIST = (window.GCD_HISTORY && window.GCD_HISTORY.events) || [], SINCE = window.GCD_HISTORY && window.GCD_HISTORY.since;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

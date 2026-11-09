@@ -314,7 +314,8 @@ const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 let NOW = Date.now(); const DAY = 864e5;
 const showTitle = t => { const x = String(t || "").replace(/^\s*sources?:\s*/i, ""); return x.charAt(0).toUpperCase() + x.slice(1); };   // Sheep prefixes every scoop with "Sources:"; display only
-function prep() { D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.hay = norm([i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); }); }
+const langOf = t => /[\uac00-\ud7a3]/.test(t) ? "한국어 Korean" : /[\u3040-\u30ff]/.test(t) ? "日本語 Japanese" : /[\u4e00-\u9fff]/.test(t) ? "中文 Chinese" : "";
+function prep() { D.items.forEach(i => { i.t = Date.parse(i.published || i.seen); i.lang = langOf(i.title); i.hay = norm([i.lang,i.title,i.summary,i.tags.join(" "),i.source,i.author,i.category].join(" ")); }); }
 prep();
 
 let CATS = new Set(D.items.map(i=>i.category));
@@ -447,7 +448,7 @@ function renderFeed(items) {
   $("feed").innerHTML = sorted.slice(0,S.shown).map(i => `<article class="item">
     <div><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a></h3>
     <div class="meta"><span><i class="dot" style="background:var(--${i.type})"></i> ${TNAME[i.type]} · ${esc(i.source)}</span><span>${ago(i.t)}</span>
-    <span>${metricStr(i)}</span><span class="tag">${esc(i.category)}</span>${i.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+    <span>${metricStr(i)}</span><span class="tag">${esc(i.category)}</span>${i.lang?`<span class="tag" title="Original-language source">${esc(i.lang)}</span>`:""}${i.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
     <div class="q" data-tip="Engagement ${i.breakdown.engagement} · Relevance ${i.breakdown.relevance} · Authority ${i.breakdown.authority} · Freshness ${i.breakdown.freshness}"><b>${i.quality}</b><small>${i.tier}</small></div>
     ${i.summary?`<div class="snip">${esc(i.summary)}</div>`:""}</article>`).join("") || `<div class="card empty">No items match these filters.</div>`;
   $("more").hidden = sorted.length <= S.shown;
@@ -517,6 +518,12 @@ render();
 
 /* ---------- tabs ---------- */
 let tabBooted = false;
+let _logos;   // team logos (~200KB) load after first paint, and before any view that draws them
+function loadLogos() {
+  if (window.GCD_LOGOS) return Promise.resolve();
+  return _logos || (_logos = new Promise(res => { const e = document.createElement("script"); e.src = "contract/logos.js"; e.onload = e.onerror = () => res(); document.head.appendChild(e); }));
+}
+window.addEventListener("load", () => setTimeout(loadLogos, 300));
 function showTab(name) {
   if (tabBooted && window.goatcounter && goatcounter.count) goatcounter.count({ path: "/tab/" + name, title: "Tab: " + name });
   tabBooted = true;
@@ -524,10 +531,10 @@ function showTab(name) {
   $("viewHome").hidden = !h; $("viewFeed").hidden = !f; $("viewRosters").hidden = !r; $("viewContract").hidden = !c;
   [["Home", h], ["Rosters", r], ["Feed", f], ["Contract", c]].forEach(([k, on]) => $("tab" + k).setAttribute("aria-selected", on));
   if (h && window.HomeView) HomeView.render();
-  if (c && window.ContractView) ContractView.render();
+  if (c && window.ContractView) { ContractView.render(); loadLogos().then(() => !$("viewContract").hidden && ContractView.render()); }
   if (history.replaceState) history.replaceState(null, "", h ? location.pathname + location.search : "#" + name);
   if (f) renderTime(filtered());
-  if (r && window.Rosters) Rosters.render();
+  if (r && window.Rosters) { Rosters.render(); loadLogos().then(() => !$("viewRosters").hidden && Rosters.render()); }
 }
 $("tabHome").onclick = () => showTab("home");
 $("tabFeed").onclick = () => showTab("feed");
@@ -537,16 +544,15 @@ $("tabContract").onclick = () => showTab("contract");
 <div id="rd-back" hidden></div>
 <aside id="rdrawer" aria-hidden="true" role="dialog" aria-label="Team panel"></aside>
 <script src="contract/data.js"></script>
-<script src="contract/logos.js"></script>
 <script src="contract/roles-kr.js"></script>
 <script src="contract/regions.js"></script>
 <script src="contract/history.js"></script>
 <script src="roster-overrides.js?v=209058d6"></script>
 <script src="standings.js?v=203ae071"></script>
 <script src="common-words.js?v=10537f26"></script>
-<script src="rosters.js?v=5d580edf"></script>
+<script src="rosters.js?v=901913cc"></script>
 <script src="home.js?v=876d138b"></script>
-<script src="contract.js?v=ebd26340"></script>
+<script src="contract.js?v=630a2334"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
 </body>
 </html>
