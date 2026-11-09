@@ -66,7 +66,7 @@ The **Contract Radar** tab is a native view of the same snapshot (`docs/contract
 | Part | How it updates |
 |---|---|
 | News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every 15 min and `refresh.yml` every 3 h, as scheduled. In practice GitHub delays scheduled runs (observed gaps of 4-6 h), so expect several updates a day, not minutes; filtered to League only |
-| Contract data + change history | synced in `refresh.yml` from the Contract Radar site (which refreshes daily), behind the guard |
+| Contract data + change history | pulled straight from Riot's sheet by `scripts/contract_refresh.js` (Contract Radar's own script and guard) on every full refresh; falls back to Contract Radar's published copy if the sheet is unreachable |
 | Site publishing | GitHub Pages on every push; script URLs are re-stamped automatically |
 | Tests | `ci.yml` runs on every push |
 | `standings.js` (card order) | **manual**: copied from Leaguepedia; the Rosters tab warns when it is over 21 days old |
