@@ -97,6 +97,7 @@
   .snip { color:var(--ink2); font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; grid-column:1/-1; }
   .q { text-align:right; font-variant-numeric:tabular-nums; }
   .q b { font-size:18px; } .q small { display:block; color:var(--ink2); font-size:11px; }
+  .lgtag { background:var(--ink); color:var(--bg, #fff); border-radius:6px; padding:0 6px; font-size:11px; font-weight:600; letter-spacing:.02em; }
   .tag { background:var(--chip); border-radius:6px; padding:0 6px; font-size:11px; color:var(--ink2); }
   #tip { position:fixed; pointer-events:none; background:var(--ink); color:var(--bg); padding:6px 9px; border-radius:6px; font-size:12px; display:none; z-index:9; max-width:260px; box-shadow:0 2px 10px #0003; }
   svg text { fill:var(--ink3); font-size:11px; }
@@ -457,7 +458,7 @@ function renderFeed(items) {
   $("feedcount").textContent = `${items.length} item${items.length===1?"":"s"}`;
   $("feed").innerHTML = sorted.slice(0,S.shown).map(i => `<article class="item">
     <div><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a></h3>
-    <div class="meta"><span><i class="dot" style="background:var(--${i.type})"></i> ${TNAME[i.type]} · ${esc(i.source)}</span><span>${ago(i.t)}</span>
+    <div class="meta">${(window.Rosters && Rosters.leagueOf(i)) ? `<span class="lgtag">${esc(Rosters.leagueOf(i))}</span>` : ""}<span><i class="dot" style="background:var(--${i.type})"></i> ${TNAME[i.type]} · ${esc(i.source)}</span><span>${ago(i.t)}</span>
     <span>${metricStr(i)}</span><span class="tag">${esc(i.category)}</span>${i.lang?`<span class="tag" title="Original-language source">${esc(i.lang)}</span>`:""}${i.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
     <div class="q" data-tip="Engagement ${i.breakdown.engagement} · Relevance ${i.breakdown.relevance} · Authority ${i.breakdown.authority} · Freshness ${i.breakdown.freshness}"><b>${i.quality}</b><small>${i.tier}</small></div>
     ${i.summary?`<div class="snip">${esc(i.summary)}</div>`:""}</article>`).join("") || `<div class="card empty">No items match these filters.</div>`;
@@ -564,7 +565,7 @@ function showTab(name) {
   if (history.pushState && !fromHistory && tabBootedOnce && (h ? location.hash !== "" : location.hash !== "#" + name)) history.pushState(null, "", want);   // Back/Forward step between tabs
   else if (history.replaceState) history.replaceState(null, "", want);
   tabBootedOnce = true;
-  if (f) renderTime(filtered());
+  if (f) { renderTime(filtered()); renderFeed(filtered()); }   // re-render: league chips need the roster index, which loads after the first render
   if (r && window.Rosters) { Rosters.render(); loadLogos().then(() => !$("viewRosters").hidden && Rosters.render()); }
 }
 const tabFromHash = () => ({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home";
@@ -586,8 +587,8 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="roster-overrides.js?v=5f8e4422"></script>
 <script src="standings.js?v=203ae071"></script>
 <script src="common-words.js?v=10537f26"></script>
-<script src="rosters.js?v=0cf786ac"></script>
-<script src="home.js?v=319abbf6"></script>
+<script src="rosters.js?v=5a49217d"></script>
+<script src="home.js?v=dc07d46e"></script>
 <script src="contract.js?v=387f5065"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
 </body>

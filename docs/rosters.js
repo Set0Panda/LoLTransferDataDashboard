@@ -91,11 +91,11 @@
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
   });
-  let playerItems = new Map(), teamItems = T.map(() => []), itemTeams = new Map();
+  let playerItems = new Map(), teamItems = T.map(() => []), itemTeams = new Map(), itemAny = new Map();
   function buildMentions() {
     NOW = Date.now();
   const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo));
-    playerItems = new Map(); teamItems = T.map(() => []); itemTeams = new Map();
+    playerItems = new Map(); teamItems = T.map(() => []); itemTeams = new Map(); itemAny = new Map();
   items.forEach(it => {
     if (NOW - Date.parse(it.published || it.seen) > 45 * MS) return;
     const text = it.title;      // headline only: a name buried in a summary or description is not what the story is about
@@ -125,6 +125,7 @@
       if (!playerItems.get(k).includes(it)) playerItems.get(k).push(it);
       hitTeams.add(c.ti);
     });
+    itemAny.set(it.url, explicit.size ? explicit : hitTeams);   // teams named in the headline decide the league; player handles only when no team is named
     hitTeams.forEach(ti => { if (!teamItems[ti].includes(it)) teamItems[ti].push(it); });   // named team or named player: it is that team's news
   });
   }
@@ -409,6 +410,14 @@
     if (e.target.closest(".rdx") || e.target === back) closeDrawer();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && DR) closeDrawer(); });
-  window.Rosters = { setLeague(k) { if (leaguesWithPlayers.includes(k)) { S.lg = k; S.q = ""; } }, render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
+  // league of a news item: the most common league among the teams and players its headline names, else a league tag
+  const LG_TAGS = ["LCK", "LEC", "LCS", "LPL", "CBLOL", "LJL", "PCS", "VCS", "LCP"];
+  const LG_SHORT = { "Circuito Desafiante": "CD" };
+  const leagueOf = it => {      // up to two leagues, most-named first ("LPL · LCK" when a story spans both)
+    const c = {}; (itemAny.get(it.url) || []).forEach(ti => { const l = T[ti] && T[ti].lg; if (l && l !== "(no league)") c[l] = (c[l] || 0) + 1; });
+    const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => LG_SHORT[x[0]] || x[0]);
+    return top.length ? top.join(" · ") : ((it.tags || []).find(x => LG_TAGS.includes(x)) || "");
+  };
+  window.Rosters = { leagueOf, setLeague(k) { if (leaguesWithPlayers.includes(k)) { S.lg = k; S.q = ""; } }, render, rebuild() { buildMentions(); buildRumours(); render(); if (DR) paint(); } };
   render();
 })();
