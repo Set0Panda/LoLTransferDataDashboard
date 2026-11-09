@@ -1,79 +1,65 @@
 # LoL Transfer Radar
 
-Collects LoL transfer / contract / roster content from GitHub, YouTube, newsletters (RSS) Sheep Esports and Google News searches,
-classifies and scores it, stores it in SQLite (with full-text search) and exports a static dashboard.
+A League of Legends transfer tracker: provisional rosters for every major region, rumours and roster news from the press, and a contract-expiry radar built on Riot's contract database. Unofficial fan project, not affiliated with Riot Games.
 
-    python radar.py run --demo        # offline, synthetic data -> open docs/index.html
-    python radar.py run               # live run (needs the key below for YouTube)
-    python radar.py search "jungle contract" --category "Transfers & Rumors"
-    python radar.py stats
-    python -m pytest tests
+**Live site:** https://set0panda.github.io/LoLTransferDataDashboard/
 
-Pure Python 3.10+ standard library; pytest only for the tests.
+## What's on the site
 
-## Keys (all optional; a source without credentials degrades or is skipped)
-| Env var | Source | Notes |
-|---|---|---|
-| `GITHUB_TOKEN` | GitHub | raises search rate limit (auto-provided in Actions) |
-| `YOUTUBE_API_KEY` | YouTube | required; free quota 10k units/day, each query costs ~100 |
+| Tab | What it shows |
+|---|---|
+| **Home** | What the tool is, headline numbers, links in |
+| **Provisional rosters** | One card (or a matrix row) per team: starters, coach, who is out of contract, projected slots for next season, rumours and news mentions |
+| **Feed & analytics** | Every collected item (LoL only), with filters, quality scores and trends |
+| **Contract Radar** | Expiry radar, market board, what changed, data health (full issue list) |
 
-## How it works
-- `config.json`: GitHub queries, YouTube queries, newsletter feed URLs. Verified feeds: Esports Insider, Dexerto (LoL). Google News RSS (`radar/collectors/gnews.py`, queries in `config.json -> gnews`) pulls headlines from publications that block CI directly (Dot Esports, EGamersWorld, Insider Gaming, Hotspawn...); each publisher shows up as its own source, headline-only. Sheep Esports is off by default (`sheep.enabled=false`): its Cloudflare blocks CI traffic and we don't try to get around that, so Sheep headlines arrive only through Google News. The direct collector stays in the repo in case Sheep ever offers a feed or allows access. Sheep Esports has no RSS, so `radar/collectors/sheep.py` reads its public sitemap and each new article's metadata (title, short description, tags; the `LEAK` tag marks scoops). Dot Esports and Inven Global have no working feed.
-- `radar/classify.py`: keyword categories (editable), league/role tags, relevance 0-1. Items below 0.3 relevance are dropped.
-- `radar/scoring.py`: quality 0-100 = engagement 35% + relevance 25% + source authority 20% + freshness 20%. Tiers: High 70+, Medium 45-69, Low <45. Breakdown stored per item (hover the score in the dashboard).
-- `snapshots` table keeps every run's stars/views, so GitHub "stars this week" becomes real after a week of daily runs.
-- `.github/workflows/refresh.yml`: daily run, commits `data/radar.db` + `docs/data.js`; served by GitHub Pages from `/docs`.
+## How it stays up to date
+
+| Part | How |
+|---|---|
+| News (Google News, outlets, Sheep Esports, YouTube, GitHub) | `fast.yml` every 15 min, `refresh.yml` (full) every 3 h |
+| External timer | cron-job.org triggers both workflows on time, because GitHub's own scheduler runs hours late. Uses a fine-grained token (Actions: read and write, this repo only). **The token expires after a year: renew it, or the timer stops** (the built-in schedules keep running as a slow backup) |
+| Contract data + history | Pulled from Riot's sheet by `scripts/contract_refresh.js` on every full refresh |
+| LCK / LPL coaches | `scripts/coach_sync.py` from Leaguepedia roster changes (secrets `LEAGUEPEDIA_USER`, `LEAGUEPEDIA_PASS`); shown with `*`. Riot's sheet has none for those two regions |
+| Publishing and tests | GitHub Pages and `ci.yml` on every push |
+| **Manual by design** | `docs/standings.js` (card order, copied from Leaguepedia; the site warns after 21 days), `docs/roster-overrides.js` (confirmed signings), `docs/coaches-manual.js` (coach fixes) |
+
+The header shows when the update job last ran and when new items last landed; its dot turns amber, then red, if runs stop arriving.
+
+## Safeguards: bad data never replaces good data
+
+- **Contract sync** (`scripts/guard_contract.py`): up to 15% change per region passes; more needs the sheet's own "last updated" stamp to have moved. A drop over 50%, growth over 100%, a backwards stamp, a missing region or an email address always blocks.
+- **Feed export** (`radar/export.py`): if a source type loses more than half its items in one run, `docs/data.js` is not rewritten.
+- **Coach sync**: any failure or a suspiciously small result keeps the previous file.
+- Override on purpose: run *Refresh radar (full)* manually and tick **force**.
+
+## LoL-only filter
+
+An item passes if it names League explicitly, or a known LoL player handle (after org names are stripped), or a known LoL team together with a League-only role word. A team name alone is not enough, because several orgs also field Valorant or CS. Items below 0.3 relevance are dropped.
 
 ## Known limits
-- GitHub has no trending API; "trending" = recently pushed + starred, then star velocity from snapshots.
-- Newsletters expose no engagement numbers, so their score leans on authority, depth and freshness.
-- Email-only newsletters need an RSS bridge (Substack/Ghost/Beehiiv have feeds; others via kill-the-newsletter.com).
-- Categorisation is keyword-based: expect misses on slang and non-English titles. Tune the regexes after your first real run.
 
-## Provisional rosters (tab on the site)
-Per-team cards built from [Contract Radar](https://set0panda.github.io/contract-radar/)'s contract sheet, with logos.
-- A starting slot is *projected* when the sheet shows a contract ending after the next aligned end date; otherwise it shows *Open* plus who is expiring.
-- Headlines from the feed that name a player show as a "mentions" tag on the slot, and team-level news is listed on the card. Handles that are also everyday words ("Life", "Time") only count when their team is named too.
-- The sheet lags reality. Put confirmed or rumoured moves in `docs/roster-overrides.js` (format in the file); confirmed ones move the player between cards.
-- `docs/contract/` is a copy of Contract Radar's `data.js`, `logos.js`, `roles-kr.js` and `regions.js`, refreshed by the daily Action (it keeps the committed copy if the fetch fails). The aligned-date calendar in `docs/rosters.js` mirrors Contract Radar's; update both together each year.
-- `docs/common-words.js` is a generated English word list (wordfreq, top ~5.7k) used for the handle filter.
+- Riot's sheets lag: CN and EMEA are often weeks old. The Data health tab shows each region's age.
+- Matching is keyword-based. Rumours are read from headlines and are unconfirmed; expect misses on slang and non-English titles.
+- Leaguepedia is volunteer-edited, so coaches can lag the real world.
+- GitHub Pages lags about a minute behind each push.
 
-## Update cadence
-- **Fast job** (`fast.yml`, every 10 min): Sheep + RSS feeds only. Commits only when a new article appears, so the repo doesn't fill with empty commits.
-- **Full job** (`refresh.yml`, every 3 h): everything, including YouTube/GitHub, plus score refresh. Both share one concurrency group so they never run at once.
-- **The page** re-reads `data.js` every minute while the tab is open and updates in place; GitHub Pages itself lags about a minute behind each push. Real per-minute freshness would need a small server (e.g. a Cloudflare Worker on a 1-minute cron) instead of Actions.
+## Run it locally
 
-## League rankings on the roster cards
-Each card also lists the team's **coaches** (from the same sheet; LCK and LPL coaches aren't in the sheet, so they come from Leaguepedia roster changes via `scripts/coach_sync.py` (needs the `LEAGUEPEDIA_USER`/`LEAGUEPEDIA_PASS` bot-password secrets) plus `docs/coaches-manual.js`, and are marked with `*`). Cards are visual: team logo, an accent colour sampled from the logo, a five-segment slot bar, per-role status dots, region logos as the league selector, and a rank-ordered logo strip that scrolls to a card when clicked. In dark mode logos sit on a light plate so dark crests stay visible.
+Python 3.10+, standard library only (pytest for tests).
 
-Rumoured moves are read from headlines ("X set to join TEAM as Head Coach", "TEAM pick X to replace Y", "set to part ways with X", "reaches verbal agreement with") over the last 21 days and shown on the card as a RUMOUR line in the slot the player would fill, with a "rumour" marker next to the player on his current team; they never count towards the projected slots. It is pattern matching on headlines, so check the linked reports. A Cards / Matrix switch changes the layout: Matrix has one row per team (in ranking order) and one column per role, so a whole league fits on one screen; the choice is remembered in the browser. Click a team header, a "N mentions" chip or "LINKED IN NEWS" to open a side panel: team, roster rows and every headline that names the team or player (a chip opens it with that player highlighted and their headlines first). Esc or the backdrop closes it.
+    python radar.py run --demo        # offline, synthetic data -> open docs/index.html
+    python radar.py run               # live run (needs YOUTUBE_API_KEY)
+    python radar.py search "jungle contract" --category "Transfers & Rumors"
+    python -m pytest tests
+    python scripts/bump_assets.py     # re-stamp script URLs after editing a script
 
-`docs/standings.js` orders each league's cards (rank badge + series record). It is **data copied from Leaguepedia's 2026 standings tables, not a live feed**: Leaguepedia's API rate-limits anonymous callers (it refused my queries), and every league lays its season out differently (LCK/LPL use groups, LCS/LEC/CBLOL a table per split, LCP a Swiss stage), so there is no single table to scrape unattended. Covered: LCK, LPL, LEC, LCS, CBLOL, LCP. Others fall back to A-Z. To refresh after a split ends, run `scripts/extract-standings.browser.js` on lol.fandom.com and paste the result in. `aliases` in that file maps Leaguepedia names to the contract sheet's names.
-
-
-## Safeguards (same principle as Contract Radar)
-
-A bad fetch should never replace good data.
-
-- **Contract data sync** (`scripts/guard_contract.py`, run by `refresh.yml`): each region is compared with the committed snapshot. Up to 15% change passes. Beyond that it is only accepted if the sheet's own "last updated" stamp moved, and a drop over 50% or growth over 100% always needs a human. A stamp going backwards, a missing region or an e-mail address always blocks. A blocked snapshot is skipped, the last good copy stays, and the run shows a warning and a summary.
-- **Feed export** (`radar/export.py`): if any source type (with 20+ published items) loses more than half of them in one run, `docs/data.js` is not rewritten.
-- Both can be overridden on purpose: run the *Refresh radar (full)* workflow manually and tick **force** (or pass `--force` locally).
-
-The **Contract Radar** tab is a native view of the same snapshot (`docs/contract.js`): Expiry radar, Market board, What changed (from `history.js`), Data health. The region cards filter all four. The dashboard opens on a **Home** page (what the tool is, live numbers, links into the three views); `python scripts/bump_assets.py` re-stamps the script URLs after you edit a script.
-
-## What is automated, and what is not
-
-| Part | How it updates |
+| Env var | Used for |
 |---|---|
-| News (Google News incl. Sheep, outlets, YouTube, GitHub) | `fast.yml` every 15 min and `refresh.yml` every 3 h, as scheduled. In practice GitHub delays scheduled runs (observed gaps of 4-6 h), so expect several updates a day, not minutes; filtered to League only |
-| Contract data + change history | pulled straight from Riot's sheet by `scripts/contract_refresh.js` (Contract Radar's own script and guard) on every full refresh; falls back to Contract Radar's published copy if the sheet is unreachable |
-| External timer | cron-job.org calls GitHub's `workflow_dispatch` on `fast.yml` every 15 min and `refresh.yml` every 3 h, because GitHub's own scheduler runs hours late. It uses a fine-grained token (Actions: read and write, this repo only) stored in cron-job.org; **it expires after a year, so renew it then** or the timer silently stops (the built-in schedules still run as a slow backup). The header dot goes amber/red when runs stop arriving |
-| LCK / LPL coaches | `scripts/coach_sync.py` on every full refresh, from Leaguepedia roster changes (bot login in secrets `LEAGUEPEDIA_USER` / `LEAGUEPEDIA_PASS`); skips itself if the login is missing or the result looks wrong. Marked `*` on the cards; `docs/coaches-manual.js` can add or override |
-| Site publishing | GitHub Pages on every push; script URLs are re-stamped automatically |
-| Tests | `ci.yml` runs on every push |
-| `standings.js` (card order) | **manual**: copied from Leaguepedia; the Rosters tab warns when it is over 21 days old |
-| `roster-overrides.js` (confirmed signings) | **manual by design**: it is your call what counts as confirmed |
+| `YOUTUBE_API_KEY` | YouTube (free quota 10k units/day) |
+| `GITHUB_TOKEN` | GitHub search rate limit (automatic in Actions) |
+| `LEAGUEPEDIA_USER`, `LEAGUEPEDIA_PASS` | Coach sync (Actions secrets) |
 
-**LoL-only filter.** An item passes if it names League explicitly (league, event or LoL terms), or a known LoL *player handle* (after org names such as "Xi Lai Gaming" are stripped, so an org can't fake a handle), or a known LoL *team* together with a League-only role word (jungler, midlaner, ADC...). A team name alone is not enough, because G2, Fnatic, FURIA, LOUD, NRG and others field Valorant and CS rosters too.
+Config lives in `config.json`; categories and scoring in `radar/classify.py` and `radar/scoring.py` (quality = engagement 35% + relevance 25% + authority 20% + freshness 20%).
 
-Visit counts use GoatCounter (no cookies, no personal data), the same counter as Contract Radar; the site code is in `docs/site-config.js` (set it to `""` to turn it off). Tab switches are counted as `/tab/<name>`.
+Visit counts use GoatCounter (no cookies, no personal data); set `docs/site-config.js` to `""` to turn it off. Contract data and logos come from [Contract Radar](https://set0panda.github.io/contract-radar/). Team logos are trademarks of their owners.
