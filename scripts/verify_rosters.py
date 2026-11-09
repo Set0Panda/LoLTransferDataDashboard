@@ -6,7 +6,7 @@ import json, os, re, sys, time
 sys.argv = [sys.argv[0]]                      # reuse coach_sync helpers without running its main()
 import importlib.util
 spec = importlib.util.spec_from_file_location("cs", os.path.join(os.path.dirname(__file__), "coach_sync.py"))
-src = open(spec.origin).read().replace("\ntry:\n    main()", "\nif False:\n    main()")
+src = open(spec.origin).read().replace("\ntry:\n    main()", "\ntry:\n    pass")
 cs = type(sys)("cs"); cs.__file__ = spec.origin; exec(compile(src, spec.origin, "exec"), cs.__dict__)
 norm, call = cs.norm, cs.call
 
