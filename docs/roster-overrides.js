@@ -7,4 +7,6 @@
 // Example (delete the slashes to use):
 // {player: "Zeus", from: "Hanwha Life Esports", to: "Gen.G", role: "TOP", status: "rumor", url: "https://...", note: "Sheep Esports, 8 Nov"},
 window.ROSTER_OVERRIDES = [
+{player: "TheShy", from: "", to: "Invictus Gaming", role: "TOP", status: "confirmed", url: "https://www.sheepesports.com/pt/articles/invictus-gaming-announce-the-return-of-theshy-for-the-lpl-split-3/en", note: "IG announced his return for LPL Split 3, 15 Jun 2026"},
+{player: "Soboro", from: "Invictus Gaming", status: "confirmed", url: "https://rft.gg/news/theshy-invictus-gaming-lpl-split-3", note: "Left IG with Nia and Breathe, 15 Jun 2026; the CN sheet predates this"},
 ];
