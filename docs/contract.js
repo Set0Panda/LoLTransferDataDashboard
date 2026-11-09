@@ -45,7 +45,7 @@
   const regCount = {}; P.forEach(p => { if (p.player) regCount[p.t.reg] = (regCount[p.t.reg] || 0) + 1; });
 
   // ---- state ----
-  const S = { sub: "radar", regs: new Set(), q: "", lg: "", role: "", win: "all", ended: false, noEnd: false, staff: false, sort: "ms", dir: 1, shown: 100, mwin: "aligned" };
+  const S = { sub: "radar", regs: new Set(), q: "", lg: "", role: "", win: "all", ended: false, noEnd: false, staff: false, sort: "ms", dir: 1, shown: 100, mwin: "aligned", hopen: false, hsev: "", hkey: "", hq: "", hshown: 60 };
   const days = p => Math.ceil((p.ms - NOW) / MS);
   const age = reg => { const u = META.updated && META.updated[reg]; return u ? Math.floor((NOW - Date.parse(u + "T00:00:00Z")) / MS) : null; };
   const ageTag = a => a == null ? ["Unknown", "r"] : a <= 14 ? ["Current", "g"] : a <= 45 ? ["Aging", "a"] : ["Stale", "r"];
@@ -130,6 +130,77 @@
       }).join("")}</div>`).join("") : `<div class="card empty">No changes recorded yet${SINCE ? " since " + esc(fmt(SINCE)) : ""}. The sheet is checked daily and anything that moves shows up here.</div>`);
   }
 
+  // ---- Data health: every individual issue (port of Contract Radar's checks, on the cleaned rows) ----
+  const TOP_LG = { LEC: 1, LCS: 1, LPL: 1, LCK: 1, LCP: 1, CBLOL: 1 }, SEVN = { high: "High", med: "Medium", low: "Low" };
+  let FINDINGS = null;
+  function buildFindings() {
+    const F = [], add = (sev, key, label, t, detail, reg) => F.push({ sev, key, label, t, detail, reg: t ? t.reg : reg });
+    const short = iso => { const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MON[d.getUTCMonth()]; };
+    const list = (a, n, f) => a.slice(0, n).map(f).join(", ") + (a.length > n ? " and " + (a.length - n) + " more" : "");
+    REGS.forEach(g => {
+      const a = age(g), u = META.updated && META.updated[g]; if (a == null) return;
+      if (a > 60) add("high", "stale", "Region sheet looks stale", null, `${g} sheet last updated ${fmt(u)} (${a} days ago). Contract ends and rosters may be out of date.`, g);
+      else if (a > 30) add("med", "stale", "Region sheet looks stale", null, `${g} sheet last updated ${fmt(u)} (${a} days ago).`, g);
+    });
+    const byT = {}, L = {}, hasCoach = {};
+    P.forEach(p => { (byT[p.t.i] = byT[p.t.i] || []).push(p); if (p.role === "COACH") hasCoach[p.t.reg] = 1; });
+    Object.keys(byT).forEach(i => { const t = T[i], o = L[t.lg] = L[t.lg] || { reg: t.reg, players: 0, end: 0, res: 0, role: 0, teams: {} }; o.teams[i] = 1;
+      byT[i].forEach(r => { if (!r.player) return; o.players++; if (r.end) o.end++; if (r.res) o.res++; if (r.role) o.role++; }); });
+    Object.keys(L).forEach(lg => { const o = L[lg], nt = Object.keys(o.teams).length; if (!o.players) return;
+      if (!o.end) add("low", "cov-end", "League publishes no end dates", null, `${lg}: ${o.players} players across ${nt} teams have no contract end date.`, o.reg);
+      if (!o.res) add("low", "cov-res", "League publishes no residency", null, `${lg}: none of the ${o.players} players has a residency status.`, o.reg); });
+    const AN = nextAligned();
+    Object.keys(byT).forEach(i => {
+      const t = T[i], rows = byT[i], L0 = L[t.lg] || {}, players = rows.filter(r => r.player);
+      if (t.reg === "KR") { if (players.length && players.length < 5) add("high", "thin", "Roster looks too thin", t, `Only ${players.length} players listed.`); }
+      else {
+        const have = {}; players.forEach(r => { have[r.role] = 1; });
+        const sev = TOP_LG[t.lg] ? "high" : "med";
+        if (!players.length) add(sev, "no-players", "No players listed", t, `Only staff rows (${rows.length}) are listed for this team.`);
+        else { const miss = STARTERS.filter(x => !have[x]); if (miss.length && L0.role) add(sev, "missing-role", "Starting role missing", t, `No ${miss.join(", ")} listed. ${players.length} player${players.length === 1 ? "" : "s"} on the sheet.`); }
+        if (hasCoach[t.reg] && TOP_LG[t.lg] && !rows.some(r => r.role === "COACH")) add("med", "no-coach", "No coach listed", t, "Top-flight team with no coach row.");
+      }
+      const seen = {}; rows.forEach(r => { (seen[r.name.toLowerCase()] = seen[r.name.toLowerCase()] || []).push(r); });
+      Object.values(seen).forEach(g => { if (g.length < 2) return;
+        if (g.every(r => r.role === g[0].role)) add("high", "dup-in-team", "Duplicate entry on the same team", t, `“${g[0].name}” is listed ${g.length} times as ${g[0].role || "N/A"}.`);
+        else add("low", "multi-role", "Same person under two roles", t, `“${g[0].name}”: ${g.map(r => r.role || "N/A").join(" and ")}.`); });
+      const exp = rows.filter(r => r.ms != null && r.ms < NOW).sort((a, b) => a.ms - b.ms);
+      if (exp.length) { const oldest = Math.max(...exp.map(r => Math.floor((NOW - r.ms) / MS)));
+        add(oldest > 30 ? "med" : "low", "expired", "Contract end date already passed", t, `${exp.length} listing${exp.length === 1 ? "" : "s"}, oldest ended ${oldest} days ago: ${list(exp, 4, r => `${r.name} (${short(r.end)})`)}.`); }
+      if (AN) { const offc = players.filter(r => r.ms != null && /^\d{4}-/.test(r.end) && r.end > dayAfter(AN) && !ALSET[r.end]).sort((a, b) => a.ms - b.ms);
+        if (offc.length) add("low", "off-cal", "End date off the aligned calendar", t, `Contracts should end on an aligned date (${short(AN)} next) or be short deals ending before it. Check: ${list(offc, 5, r => `${r.name} (${short(r.end)})`)}. May be a typo, or a league with its own rules.`); }
+      if (L0.end) { const ne = players.filter(r => !r.end); if (ne.length) add("low", "no-end", "Player missing an end date", t, list(ne, 5, r => r.name) + "."); }
+      if (L0.res) { const nr = players.filter(r => !r.res); if (nr.length) add("low", "no-res", "Player missing residency", t, list(nr, 5, r => r.name) + "."); }
+    });
+    const names = {};
+    P.forEach(r => { if (!r.player || r.name.length < 3) return; (names[r.name.toLowerCase()] = names[r.name.toLowerCase()] || []).push(r); });
+    Object.values(names).forEach(g => { const ids = [...new Set(g.map(r => r.t.i))]; if (ids.length < 2) return;
+      add("med", "dup-across", "Same name on more than one team", T[ids[0]], `“${g[0].name}” appears on ${ids.map(i => `${T[i].name} (${T[i].lg})`).join(" and ")}. Name match only, so verify it is a transfer or a different player.`); });
+    const rank = { high: 0, med: 1, low: 2 };
+    return F.sort((a, b) => rank[a.sev] - rank[b.sev] || a.label.localeCompare(b.label) || (a.t ? a.t.name : "").localeCompare(b.t ? b.t.name : ""));
+  }
+  const findingsOpen = () => {
+    if (!FINDINGS) FINDINGS = buildFindings();
+    const inReg = f => !S.regs.size || S.regs.has(f.reg), pool = FINDINGS.filter(inReg);
+    const cnt = { high: 0, med: 0, low: 0 }; pool.forEach(f => cnt[f.sev]++);
+    const keys = {}; pool.forEach(f => { keys[f.key] = f.label; });
+    const q = S.hq.trim().toLowerCase();
+    const shown = pool.filter(f => (!S.hsev || f.sev === S.hsev) && (!S.hkey || f.key === S.hkey) &&
+      (!q || (f.label + " " + f.detail + " " + (f.t ? f.t.name + " " + f.t.lg : "")).toLowerCase().includes(q)));
+    const tone = { high: "r", med: "a", low: "" };
+    const rows = shown.slice(0, S.hshown).map(f => `<div class="crfi"><span class="crt ${tone[f.sev]}">${SEVN[f.sev]}</span><b>${esc(f.label)}</b>
+      <span class="crfm">${f.t ? `<span class="crteam">${logo(f.t)}<span>${esc(f.t.name)}</span></span> <span class="dim">${esc(f.t.lg)} · ${f.t.reg}</span>` : `<span class="dim">Region ${f.reg}</span>`}</span>
+      <span class="crfd">${esc(f.detail)}</span></div>`).join("");
+    return `<details class="card crfind" id="cfind"${S.hopen ? " open" : ""}><summary><b>All issues</b> <span class="dim">(${pool.length}${S.regs.size ? ", filtered to selected regions" : ""})</span>
+        ${["high", "med", "low"].map(k => `<span class="crt ${tone[k]}">${cnt[k]} ${SEVN[k].toLowerCase()}</span>`).join(" ")}</summary>
+      <div class="hint" style="margin:8px 0">Checks run on the snapshot. High means the sheet is probably wrong or unusable for that team; medium and low need a human look. A finding is a lead, not proof of an error.</div>
+      <div class="crfilters"><span class="seg" style="margin-left:0">${["high", "med", "low"].map(k => `<button class="chip" data-hsev="${k}" aria-pressed="${S.hsev === k}">${SEVN[k]} <span class="n">${cnt[k]}</span></button>`).join("")}</span>
+        <select id="hkey" aria-label="Check"><option value="">All checks</option>${Object.keys(keys).sort((a, b) => keys[a].localeCompare(keys[b])).map(k => `<option value="${k}"${S.hkey === k ? " selected" : ""}>${esc(keys[k])}</option>`).join("")}</select>
+        <input type="search" id="hq" placeholder="Team, player or text" value="${esc(S.hq)}"></div>
+      ${rows || '<div class="empty">No findings match.</div>'}
+      <div class="dim" style="margin:8px 2px">${shown.length > S.hshown ? `<button class="chip" id="hmore">Show more (${shown.length - S.hshown} left of ${shown.length})</button>` : `${shown.length} finding${shown.length === 1 ? "" : "s"}`}</div></details>`;
+  };
+
   // ---- Data health ----
   function health() {
     const regs = REGS.filter(g => (regCount[g] || (META.updated && META.updated[g])) && (!S.regs.size || S.regs.has(g)));
@@ -142,6 +213,7 @@
     }).join("");
     return `<div class="hint" style="margin:0 0 10px">Problems in the source sheets, so you know what not to trust. An old sheet means old dates; "off calendar" end dates are not on Riot's aligned dates, which is normal for mid-season deals.</div>
       <div class="tablewrap"><table class="crhl"><thead><tr><th>Region</th><th>Sheet</th><th>Ended, still listed</th><th>No end date</th><th>Missing role</th><th>Duplicates removed</th><th>Off-calendar end dates</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${findingsOpen()}
       <p class="hint">KR roles are not in Riot's sheet; they come from Leaguepedia and are marked * in the radar. Contract data: Riot's League-Recognized Contract Database, via <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc(META.asOf || "?")}). Unofficial fan project, not affiliated with Riot Games.</p>`;
   }
 
@@ -160,6 +232,11 @@
     const sl = box.querySelector("#clg"); if (sl) sl.onchange = e => { S.lg = e.target.value; S.shown = 100; render(); };
     const sw = box.querySelector("#cwin"); if (sw) sw.onchange = e => { S.win = e.target.value; S.shown = 100; render(); };
     [["#cended", "ended"], ["#cnoend", "noEnd"], ["#cstaff", "staff"]].forEach(([id, k]) => { const b = box.querySelector(id); if (b) b.onclick = () => { S[k] = !S[k]; S.shown = 100; render(); }; });
+    const fd = box.querySelector("#cfind"); if (fd) fd.ontoggle = () => { S.hopen = fd.open; };
+    on("[data-hsev]", "onclick", e => { const k = e.currentTarget.dataset.hsev; S.hsev = S.hsev === k ? "" : k; S.hshown = 60; S.hopen = true; render(); });
+    const hk = box.querySelector("#hkey"); if (hk) hk.onchange = e => { S.hkey = e.target.value; S.hshown = 60; S.hopen = true; render(); };
+    const hq = box.querySelector("#hq"); if (hq) hq.oninput = e => { S.hq = e.target.value; S.hshown = 60; S.hopen = true; const pos = e.target.selectionStart; render(); const n = box.querySelector("#hq"); n.focus(); n.setSelectionRange(pos, pos); };
+    const hm = box.querySelector("#hmore"); if (hm) hm.onclick = () => { S.hshown += 60; S.hopen = true; render(); };
     const mo = box.querySelector("#cmore"); if (mo) mo.onclick = () => { S.shown += 100; render(); };
   }
   window.ContractView = { render };

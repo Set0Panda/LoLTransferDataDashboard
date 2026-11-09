@@ -227,6 +227,11 @@
   .crch { display:flex; gap:8px; align-items:baseline; padding:5px 0; border-top:1px solid var(--line); font-size:13px; flex-wrap:wrap; }
   table.crhl { width:100%; min-width:720px; border-collapse:collapse; font-size:13px; } .crhl th, .crhl td { padding:9px 14px; border-top:1px solid var(--line); text-align:left; font-weight:400; }
   .crhl thead th { border-top:0; color:var(--ink3); font-size:11px; letter-spacing:.06em; text-transform:uppercase; } .crhl tbody th { font-weight:600; } .crhl .rreglogo { height:20px; vertical-align:middle; margin-right:4px; }
+  .crfind { margin-top:14px; } .crfind summary { cursor:pointer; display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:14px; }
+  .crfilters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 8px; } .crfilters select, .crfilters input { background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; }
+  .crfi { display:grid; grid-template-columns:70px 1.2fr 1.1fr 2.4fr; gap:10px; align-items:baseline; padding:8px 0; border-top:1px solid var(--line); font-size:13px; } .crfi .crt { justify-self:start; }
+  .crfm { min-width:0; } .crfd { color:var(--ink2); }
+  @media (max-width:760px) { .crfi { grid-template-columns:70px 1fr; } .crfi .crfm, .crfi .crfd { grid-column:1 / -1; } }
   .rum { margin-top:3px; font-size:13px; } .rumo { color:var(--warn); font-size:11px; margin-left:4px; white-space:nowrap; }
   .rnote { font-weight:400; letter-spacing:0; text-transform:none; color:var(--ink3); font-size:11px; }
   .pn.hl .pl { background:color-mix(in srgb, var(--warn) 30%, transparent); border-radius:4px; padding:0 4px; }
@@ -554,7 +559,7 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="common-words.js?v=10537f26"></script>
 <script src="rosters.js?v=7d15ddf2"></script>
 <script src="home.js?v=876d138b"></script>
-<script src="contract.js?v=271862d6"></script>
+<script src="contract.js?v=5f514eca"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
 </body>
 </html>
