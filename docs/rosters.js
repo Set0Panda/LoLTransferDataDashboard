@@ -47,7 +47,7 @@
     if (p.player) byTeam[ti].push(p);
     if (p.role === "COACH") { coaches[ti].push(p); hasCoachData[t.reg] = true; }
   });
-  const teamByName = {}; T.forEach(t => { teamByName[norm(t.name)] = t.i; });
+  const teamByName = {}; T.forEach(t => { const k = norm(t.name); if (teamByName[k] === undefined || (T[teamByName[k]].lg === "(no league)" && t.lg !== "(no league)")) teamByName[k] = t.i; });   // same name twice (a league-less stub): use the one with a league
 
   // ---- coaches for regions Riot's sheet has none for (LCK, LPL): Leaguepedia list + manual file; marked * ----
   const noCoach = new Set(T.filter(t => !hasCoachData[t.reg]).map(t => t.reg));
