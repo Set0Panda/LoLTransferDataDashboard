@@ -497,12 +497,26 @@ document.addEventListener("mousemove", e => {
 addEventListener("resize", () => renderTime(filtered()));
 
 $("demo").hidden = !D.meta.demo;
+const agoStr = ms => { const m = Math.max(0, Math.round(ms / 6e4)); return m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago"; };
+let LASTRUN = null;   // when the news workflows last finished OK, straight from GitHub: a check that found nothing new still counts
+async function fetchLastRun() {
+  if (document.visibilityState !== "visible") return;
+  try {
+    const r = await fetch("https://api.github.com/repos/Set0Panda/LoLTransferDataDashboard/actions/runs?status=success&per_page=15");
+    if (!r.ok) return;
+    const j = await r.json(), ok = (j.workflow_runs || []).find(x => /Fast news check|Refresh radar/.test(x.name));
+    if (ok) { LASTRUN = Date.parse(ok.updated_at); genLabel(); }
+  } catch (e) { /* offline or rate-limited: fall back to the data timestamp alone */ }
+}
 function genLabel() {
   if (!D.meta.generated) { $("gen").textContent = "No data yet - run python radar.py run"; return; }
-  const m = Math.max(0, Math.round((Date.now() - Date.parse(D.meta.generated)) / 6e4));
-  $("gen").innerHTML = `<span class="live" title="This page checks for new data every minute"></span> Updated ${m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago"}`;
+  const dataAge = Date.now() - Date.parse(D.meta.generated), checkAge = LASTRUN ? Date.now() - LASTRUN : dataAge;
+  const h = checkAge / 36e5, colour = h < 3 ? "var(--ok)" : h < 8 ? "var(--warn)" : "#d4584a";
+  const txt = LASTRUN && LASTRUN > Date.parse(D.meta.generated) + 6e4
+    ? `Checked ${agoStr(checkAge)} · new items ${agoStr(dataAge)}` : `Updated ${agoStr(dataAge)}`;
+  $("gen").innerHTML = `<span class="live" style="background:${colour}" title="This page re-reads the data every minute. The dot shows how recently the update job ran: green under 3 h, amber under 8 h. GitHub delays scheduled jobs, so gaps of a few hours are normal."></span> ${txt}`;
 }
-genLabel(); setInterval(genLabel, 30000);
+genLabel(); setInterval(genLabel, 30000); fetchLastRun(); setInterval(fetchLastRun, 5 * 6e4);
 /* ---------- live refresh: re-read data.js every minute while the tab is visible ---------- */
 function poll() {
   if (document.visibilityState !== "visible") return;
