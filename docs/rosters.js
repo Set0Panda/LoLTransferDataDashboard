@@ -227,17 +227,13 @@
   const rankIdx = {};      // "LCK|normalised sheet name" -> {rank, rec}
   Object.entries(ST.leagues || {}).forEach(([lg, v]) => {
     const sheetNames = T.filter(t => t.lg === lg).map(t => t.name);
-    // Finished seasons: playoff placement (v.finish) goes first, the rest follow the regular-season table.
+    // Rank = regular-season table order (matches the record shown). Playoff result (v.finish) is a badge, not the rank.
     const fin = (v.finish || []).map(n => n.toLowerCase());
-    const ordered = v.teams.slice().sort((a, b) => {
-      const ia = fin.indexOf(a.name.toLowerCase()), ib = fin.indexOf(b.name.toLowerCase());
-      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
-    });
-    ordered.forEach((x, i) => {
+    v.teams.forEach((x, i) => {
       const want = norm((ST.aliases || {})[x.name] || x.name).replace(/\(.*?\)/g, "").replace(/[^a-z0-9]/g, "");
       const hit = sheetNames.find(n => norm(n).replace(/[^a-z0-9]/g, "") === want)
         || sheetNames.find(n => { const m = norm(n).replace(/[^a-z0-9]/g, ""); return m.includes(want) || want.includes(m); });
-      if (hit) rankIdx[lg + "|" + norm(hit)] = { rank: i + 1, rec: x.sw + "-" + x.sl };
+      if (hit) rankIdx[lg + "|" + norm(hit)] = { rank: i + 1, rec: x.sw + "-" + x.sl, place: ["Champion", "Runner-up", "3rd", "4th"][fin.indexOf(x.name.toLowerCase())] || "" };
     });
   });
   const rankOf = t => rankIdx[t.lg + "|" + norm(t.name)];
@@ -347,7 +343,7 @@
         const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
     PARTS[t.i] = { cells, bar, rumOther, hasRumor, slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
-        return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}` : esc(t.code || "")}</div></div>${bar}</header>
+        return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}${rk.place ? ` <span class="rplace">${esc(rk.place)}</span>` : ""}` : esc(t.code || "")}</div></div>${bar}</header>
       <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p><div class="rlinked">${hasRumor ? `<button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button>` : ""}</div>${slots}${coachHtml}<div class="rxtra">${rumOtherHtml}${subHtml}${leftHtml}</div></article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
@@ -379,7 +375,7 @@
     const sv = ST.leagues && ST.leagues[lg];
     const sAge = ST.asOf ? Math.floor((NOW - Date.parse(ST.asOf + "T00:00:00Z")) / MS) : null;
     const sWarn = sAge != null && sAge > 21 && !q ? `<div class="rwarn"><b>League rankings are ${sAge} days old</b> (as of ${esc(ST.asOf)}). They are copied by hand, so card order may have drifted. Refresh <code>standings.js</code> (see README).</div>` : "";
-    const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by league ranking: ${esc(sv.finishNote || sv.stage)}${sv.finishNote ? ", then " + esc(sv.stage) + " regular-season table" : ""}. Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is regular-season series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
+    const order = q ? "" : sv ? `<div class="hint" style="margin:0">Cards are ordered by the regular-season table: ${esc(sv.stage)}. ${sv.finishNote ? "Final result, " + esc(sv.finishNote) + ". " : ""}Source: ${esc(ST.source || "Leaguepedia")}, as of ${esc(ST.asOf || "?")}. Record shown is regular-season series wins-losses.</div>` : `<div class="hint" style="margin:0">No ranking data for ${esc(lg)} yet, so cards are A-Z.</div>`;
     const sel = REGS.map(g => {
       const ls = leaguesWithPlayers.filter(k => k.startsWith(g + "|")); if (!ls.length) return "";
       return `<div class="row">${regLogo(g)}${ls.map(k => `<button class="chip" data-rlg="${esc(k)}" aria-pressed="${k === S.lg && !q}">${esc(k.split("|")[1])}</button>`).join("")}</div>`;
