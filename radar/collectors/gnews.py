@@ -49,17 +49,18 @@ def collect(cfg, fixtures=False):
         return []
     seen, out = set(), []
     for q in c.get("queries", []):
-        hl, gl, lol = "en-US", "US", False             # a query can be {"q":..., "hl":"ko", "gl":"KR", "lol":true}
-        if isinstance(q, dict):                        # lol: the query itself guarantees LoL (e.g. contains LCK), so
+        hl, gl, lol, days, cap = "en-US", "US", False, c.get("days", 7), c.get("per_query", 40)
+        if isinstance(q, dict):                        # a query can be {"q":..., "hl":"ko", "gl":"KR", "lol":true, "days":3, "cap":100}
+            days, cap = q.get("days", days), q.get("cap", cap)   # lol: the query itself guarantees LoL (e.g. contains LCK), so
             q, hl, gl, lol = q["q"], q.get("hl", hl), q.get("gl", gl), q.get("lol", False)   # CJK headlines need no English keywords
         try:
-            xml = get(URL, params={"q": f"{q} when:{c.get('days', 7)}d", "hl": hl, "gl": gl, "ceid": f"{gl}:{hl.split('-')[0]}"},
+            xml = get(URL, params={"q": f"{q} when:{days}d", "hl": hl, "gl": gl, "ceid": f"{gl}:{hl.split('-')[0]}"},
                       headers=UA, timeout=30)
             items = parse(xml, c.get("authority", {}), c.get("default_authority", 0.55), lol)
         except Exception as e:
             log(f"  [gnews] {q[:40]}...: {e}")
             continue
-        new = [i for i in items if i["external_id"] not in seen][: c.get("per_query", 40)]
+        new = [i for i in items if i["external_id"] not in seen][:cap]
         seen.update(i["external_id"] for i in new)
         out += new
         log(f"  [gnews] {len(items)} results, {len(new)} new for: {q[:60]}")

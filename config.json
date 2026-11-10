@@ -70,7 +70,10 @@
         "lol": true
       },
       "site:sheepesports.com \"Sources:\"",
-      "site:sheepesports.com (LEC OR LCK OR LPL OR LCS OR CBLOL OR LCP)"
+      "site:sheepesports.com (LEC OR LCK OR LPL OR LCS OR CBLOL OR LCP)",
+      {"q": "site:sheepesports.com \"set to join\"", "days": 3, "cap": 100},
+      {"q": "site:sheepesports.com \"verbal agreement\"", "days": 3, "cap": 100},
+      {"q": "site:sheepesports.com \"Sources:\"", "days": 2, "cap": 100}
     ],
     "authority": {
       "Sheep Esports": 0.9,
