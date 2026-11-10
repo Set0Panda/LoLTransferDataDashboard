@@ -85,8 +85,10 @@
     const idx = multi ? multiIdx : handleIdx;
     if (!idx.has(h)) idx.set(h, []); idx.get(h).push({ ti: t.i, p });
   }));
+  const TEAM_ALT = { "ns redforce": ["nongshim redforce", "nongshim"], "krx": ["kiwoom drx"], "beijing jdg esports": ["jd gaming"], "shenzhen ninjas in pyjamas": ["ninjas in pyjamas"], "mgn vikings esports": ["mgn vikings"] };
   const teamPat = T.filter(t => t.i === canon[t.i]).map(t => {
     const pats = [norm(t.name)];
+    (TEAM_ALT[norm(t.name)] || []).forEach(a => pats.push(a));      // press names that differ from the sheet's ("Nongshim RedForce" vs "NS REDFORCE")
     const code = (t.code || "").trim() || (t.name.length <= 3 && t.name === t.name.toUpperCase() ? t.name : "");   // "T1", "KRX" have no code column: the short name is the code
     if (code.length >= 2 && !CODE_STOP.has(code.toUpperCase()) && code === code.toUpperCase()) pats.push({ code });
     return { t, pats };
