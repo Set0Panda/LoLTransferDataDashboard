@@ -1,0 +1,16 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s -m 30 -A "LoLTransferRadar/1.0 (+https://github.com/Set0Panda/LoLTransferDataDashboard)" -o r.html -w "HTTP %{http_code} %{size_download}\n" https://rostermania.lol/en/lec/transfers
+          python3 - <<'PY'
+          import re
+          s=open('r.html',encoding='utf-8',errors='replace').read()
+          print(len(s)); print(s[:600].replace('\n',' '))
+          for k in ['BrokenBlade','__NEXT_DATA__','application/json','/api/','Labrov']:
+              i=s.find(k); print('==',k,i)
+              if i>=0: print(s[max(0,i-700):i+900].replace('\n',' '))
+          PY
