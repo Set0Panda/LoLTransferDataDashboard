@@ -53,7 +53,14 @@ def collect(cfg, fixtures=False):
     out = []
     for lg, names in LEAGUES.items():
         try:
-            out += parse(get(f"{BASE}/{lg}/transfers", headers=UA, timeout=30), names, lg)
+            page = get(f"{BASE}/{lg}/transfers", headers=UA, timeout=30)
+            rows = TOK.findall(page)
+            badges = {}
+            for _d, row in rows:
+                b = re.search(r'<span class="skew-x-6">([^<]*)</span>', row or "")
+                if b: badges[b.group(1)] = badges.get(b.group(1), 0) + 1
+            log(f"  [rostermania] {lg}: {len(page)} bytes, {len(rows)} blocks, badges {badges}")
+            out += parse(page, names, lg)
         except Exception as e:
             log(f"  [rostermania] {lg}: {e}")
     log(f"  [rostermania] {len(out)} rumours")
