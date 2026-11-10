@@ -30,7 +30,7 @@ def main():
         if a.demo:
             import tests.make_fixtures as mf; mf.main()
             con.execute("INSERT OR REPLACE INTO meta VALUES('demo','1')")
-        only = set(a.only.split(",")) if a.only else ({"newsletter", "sheep", "gnews"} if a.fast else None)
+        only = set(a.only.split(",")) if a.only else ({"newsletter", "sheep", "gnews", "manual"} if a.fast else None)
         stats = pipeline.collect(con, cfg, only, fixtures=a.demo)
         pipeline.rescore(con, cfg)
         if not a.fast:
