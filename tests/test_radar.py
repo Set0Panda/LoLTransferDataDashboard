@@ -154,3 +154,18 @@ def test_celebrity_product_stories_are_not_moves():
     assert nl("Romance novel accused of basing protagonist on LoL icon Faker gets taken down") == 0
     assert nl("Razer’s Project AVA lets you summon Faker as an AI hologram assistant on your desk") == 0
     assert nl("Faker re-signs with T1 until 2030 & doesn’t plan to retire from LoL any time soon") > 0.5
+
+
+def test_rostermania_rumours_only():
+    from radar.collectors import rostermania as rm
+    def row(name, slug, role, a, b, badge):
+        return ('<li class="relative"><div><a class="x" href="/transfer/%s">%s</a><img src="/r.svg" width="12" height="12" alt="%s" title="%s" loading="lazy" class="role-icon shrink-0"/>'
+                '<span class="max-w-[18ch] truncate">%s</span><span>→</span><span class="max-w-[18ch] truncate">%s</span>'
+                '<span class="x"><span class="skew-x-6">%s</span></span></div></li>') % (slug, name, role, role, a, b, badge)
+    page = ('<li class="a"><span class="text-label-uppercase font-bold text-ink uppercase">Nov 09, 2026</span></li>'
+            + row("Aetinoth", "aetinoth", "ADC", "SLY", "FNC", "Rumour")
+            + row("BrokenBlade", "brokenblade", "Top", "G2", "MKOI", "Confirmed")
+            + row("Yike", "yike", "Jungle", "KC", "XXX", "Rumour"))
+    out = rm.parse(page, rm.LEAGUES["lec"])
+    assert [i["title"] for i in out] == ["Aetinoth set to join Fnatic as ADC from Solary"]
+    assert out[0]["published_at"] == "2026-11-09T12:00:00Z" and out[0]["source_name"] == "Rostermania"

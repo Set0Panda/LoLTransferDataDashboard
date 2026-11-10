@@ -3,10 +3,10 @@ from datetime import datetime, timezone, timedelta
 from . import db
 from .classify import classify
 from .scoring import score
-from .collectors import github, youtube, rss, sheep, gnews, manual
+from .collectors import github, youtube, rss, sheep, gnews, manual, rostermania
 from .collectors.common import log
 
-COLLECTORS = {"github": github, "youtube": youtube, "newsletter": rss, "sheep": sheep, "gnews": gnews, "manual": manual}
+COLLECTORS = {"github": github, "youtube": youtube, "newsletter": rss, "sheep": sheep, "gnews": gnews, "manual": manual, "rostermania": rostermania}
 MIN_RELEVANCE = 0.3
 
 
