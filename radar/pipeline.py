@@ -22,6 +22,11 @@ def collect(con, cfg, only=None, fixtures=False):
             if name == "sheep":
                 cfg["_known"] = {r[0] for r in con.execute("SELECT external_id FROM items WHERE source_name='Sheep Esports'")}
             items = mod.collect(cfg, fixtures=fixtures)
+            if name == "manual":                # the file is the source of truth: a corrected date must overwrite an earlier one
+                for it in items:
+                    if it.get("published_at"):
+                        con.execute("UPDATE items SET published_at=? WHERE external_id=? AND source_name=?",
+                                    (it["published_at"], it["external_id"], it["source_name"]))
             status = "ok"
         except Exception as e:                 # one broken source must not kill the run
             items, status = [], f"error: {e}"
