@@ -105,7 +105,7 @@
   const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo));
     playerItems = new Map(); teamItems = T.map(() => []); itemTeams = new Map(); itemAny = new Map();
   items.forEach(it => {
-    if (NOW - Date.parse(it.published || it.seen) > 45 * MS) return;
+    if (NOW - Date.parse(it.published || it.seen) > 75 * MS) return;
     const text = it.title;      // headline only: a name buried in a summary or description is not what the story is about
     let low = norm(text);
     const hitTeams = new Set();
@@ -139,7 +139,7 @@
   }
   // ---- rumoured moves, read from headlines ("X set to join TEAM as Head Coach", "TEAM pick X to replace Y", ...) ----
   const tnorm = x => " " + norm(x).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim() + " ";
-  const RUM_DAYS = 21, ROLEWORDS = [["COACH", /coach|analyst|manager|staff/i], ["JUNGLE", /jungl/i], ["TOP", /\btop/i], ["MID", /\bmid/i], ["BOT", /\bbot|\badc|marksman/i], ["SUPPORT", /support/i]];
+  const RUM_DAYS = 75, ROLEWORDS = [["COACH", /coach|analyst|manager|staff/i], ["JUNGLE", /jungl/i], ["TOP", /\btop/i], ["MID", /\bmid/i], ["BOT", /\bbot|\badc|marksman/i], ["SUPPORT", /support/i]];
   const NOT_HANDLE = new Set(["team", "players", "player", "sources", "source", "star", "standout", "star", "veteran", "rookie", "new", "former", "legend", "duo", "trio", "pair", "roster", "lineup", "coach", "analyst", "jungler", "support", "midlaner", "toplaner", "adc", "botlaner"]);
   let rumIn = T.map(() => []), rumOut = new Map(), rumAway = new Map(), RUMITEMS = new Map();
   function teamsIn(str, atStartCodes) {          // canonical teams named in str, earliest first
