@@ -163,9 +163,9 @@ def test_rostermania_rumours_only():
                 '<span class="max-w-[18ch] truncate">%s</span><span>→</span><span class="max-w-[18ch] truncate">%s</span>'
                 '<span class="x"><span class="skew-x-6">%s</span></span></div></li>') % (slug, name, role, role, a, b, badge)
     page = ('<li class="a"><span class="text-label-uppercase font-bold text-ink uppercase">Nov 09, 2026</span></li>'
-            + row("Aetinoth", "aetinoth", "ADC", "SLY", "FNC", "Rumour")
+            + row("Aetinoth", "aetinoth", "ADC", "SLY", "FNC", "Rumor")
             + row("BrokenBlade", "brokenblade", "Top", "G2", "MKOI", "Confirmed")
-            + row("Yike", "yike", "Jungle", "KC", "XXX", "Rumour"))
+            + row("Yike", "yike", "Jungle", "KC", "XXX", "Rumor"))
     out = rm.parse(page, rm.LEAGUES["lec"])
     assert [i["title"] for i in out] == ["Aetinoth set to join Fnatic as ADC from Solary"]
     assert out[0]["published_at"] == "2026-11-09T12:00:00Z" and out[0]["source_name"] == "Rostermania"

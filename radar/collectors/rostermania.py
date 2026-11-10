@@ -31,7 +31,7 @@ def parse(page, names, league="lec"):
         badge = re.search(r'<span class="skew-x-6">([^<]*)</span>', row)
         teams = re.findall(r'<span class="max-w-\[18ch\] truncate">([^<]*)</span>', row)
         role = re.search(r'alt="([A-Za-z ]+)" title="\1"[^>]*role-icon', row)
-        if not (day and pl and badge and len(teams) >= 2) or badge.group(1).strip().lower() != "rumour":
+        if not (day and pl and badge and len(teams) >= 2) or badge.group(1).strip().lower() not in ("rumor", "rumour"):
             continue
         frm, to = teams[0].strip(), teams[1].strip()
         if to not in names or "renewal" in row.lower():
