@@ -20,6 +20,7 @@ A League of Legends transfer tracker: provisional rosters for every major region
 | News (Google News, outlets, Sheep Esports, YouTube, GitHub) | `fast.yml` every 15 min, `refresh.yml` (full) every 3 h |
 | External timer | cron-job.org triggers both workflows on time, because GitHub's own scheduler runs hours late. Uses a fine-grained token (Actions: read and write, this repo only). **The token expires after a year: renew it, or the timer stops** (the built-in schedules keep running as a slow backup) |
 | Contract data + history | Pulled from Riot's sheet by `scripts/contract_refresh.js` on every full refresh |
+| Rostermania rumours (LEC) | `radar/collectors/rostermania.py`, 3-hourly with the full run. Reads only entries Rostermania labels "Rumor" (player, role, from, to, date), as news items credited to and linking back to Rostermania. robots.txt allows it; one request per run, User-Agent names this repo. Remove by setting `"rostermania": {"enabled": false}` in `config.json` |
 | LCK / LPL coaches | `scripts/coach_sync.py` from Leaguepedia roster changes (secrets `LEAGUEPEDIA_USER`, `LEAGUEPEDIA_PASS`); shown with `*`. Riot's sheet has none for those two regions |
 | Leaguepedia rumours | Same script, same run: recent `RosterRumors` rows to `docs/rumors-extra.js`. Open rumours show on the cards with a link to the source; status, date and source are in the side panel |
 | Publishing and tests | GitHub Pages and `ci.yml` on every push |
