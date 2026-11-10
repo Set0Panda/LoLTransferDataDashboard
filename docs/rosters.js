@@ -182,7 +182,7 @@
     items.forEach(it => {
       const raw = it.title.replace(/^\s*sources?:\s*/i, "").trim(), scoop = /^\s*sources?:|set to|reportedly|expected|rumou?r|linked|verbal agreement/i.test(it.title);
       let m;
-      if ((m = raw.match(/^(.+?)\s+(?:is\s+|are\s+|reportedly\s+)*(?:set|expected|poised|close|likely)\s+to\s+join\s+(.+)$/i)) || (m = raw.match(/^(.+?)\s+reaches?\s+(?:a\s+)?verbal agreement with\s+(.+)$/i))) {
+      if ((m = raw.match(/^(.+?)\s+(?:is\s+|are\s+|reportedly\s+)*(?:set|expected|poised|close|likely)\s+to\s+(?:join|re-?join|return\s+(?:to|with)|reunite\s+with|move\s+to|switch\s+to|sign\s+with)\s+(.+)$/i)) || (m = raw.match(/^(.+?)\s+reaches?\s+(?:a\s+)?verbal agreement with\s+(.+)$/i))) {
         const pl = handleOf(m[1]), tm = teamsIn(m[2], true)[0]; if (!pl || !tm) return;
         const asM = m[2].match(/\bas\s+(?:the\s+|a\s+|new\s+)*([a-z ]+?)(?:\s+(?:for|ahead|from|in|after|pending)\b|$)/i);
         const fr = (m[2].match(/\bfrom\s+(.+)$/i) || [])[1], ft = fr ? teamsIn(fr, true)[0] : null;
