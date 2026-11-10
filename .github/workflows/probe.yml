@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -s -m 30 -A "LoLTransferRadar/1.0 (+https://github.com/Set0Panda/LoLTransferDataDashboard)" -o r.html -w "HTTP %{http_code} %{size_download}\n" https://rostermania.lol/en/lec/transfers
+          curl -sL -m 30 -A "LoLTransferRadar/1.0 (+https://github.com/Set0Panda/LoLTransferDataDashboard)" -o r.html -w "HTTP %{http_code} %{size_download}\n" https://rostermania.lol/en/lec/transfers
           python3 - <<'PY'
           import re
           s=open('r.html',encoding='utf-8',errors='replace').read()
