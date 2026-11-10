@@ -5,12 +5,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sL -m 30 -A "LoLTransferRadar/1.0 (+https://github.com/Set0Panda/LoLTransferDataDashboard)" -o r.html -w "HTTP %{http_code} %{size_download}\n" https://rostermania.lol/en/lec/transfers
+          UA="LoLTransferRadar/1.0 (+https://github.com/Set0Panda/LoLTransferDataDashboard)"
+          curl -sL -m 30 -A "$UA" -o r.html https://rostermania.lol/en/lec/transfers
+          curl -sL -m 30 -A "$UA" -o s.xml https://rostermania.lol/sitemap.xml
           python3 - <<'PY'
           import re
           s=open('r.html',encoding='utf-8',errors='replace').read()
-          print(len(s)); print(s[:600].replace('\n',' '))
-          for k in ['BrokenBlade','__NEXT_DATA__','application/json','/api/','Labrov']:
-              i=s.find(k); print('==',k,i)
-              if i>=0: print(s[max(0,i-700):i+900].replace('\n',' '))
+          i=s.find('href="/transfer/brokenblade"')
+          j=s.find('href="/transfer/',i+40)
+          print("ROW1:", re.sub(r'\s+',' ',s[i-1500:j])[:5000])
+          print("LEAGUE LINKS:", sorted(set(re.findall(r'href="(/[a-z]{2}/[a-z]+/transfers|/[a-z]+/transfers)"',s)))[:30])
+          x=open('s.xml',encoding='utf-8',errors='replace').read()
+          print("SITEMAP transfers:", sorted(set(re.findall(r'<loc>([^<]*transfers[^<]*)</loc>',x)))[:40])
           PY
