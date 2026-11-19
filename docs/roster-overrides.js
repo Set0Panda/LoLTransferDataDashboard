@@ -58,4 +58,5 @@ window.ROSTER_OVERRIDES = [
 {player: "Kino", from: "CTBC Flying Oyster", status: "confirmed", note: "Leaguepedia roster change, 28 Jul 2026"},
 {player: "Evi", from: "Fukuoka SoftBank HAWKS gaming", status: "confirmed", note: "Leaguepedia roster change, 4 Sep 2026"},
 {player: "Naak Nako", from: "Team Vitality", to: "LYON", role: "TOP", status: "confirmed", note: "LYON 2027 roster announcement (EGamersWorld, 18 Nov 2026); Sheep reported it 17 Nov"},
+{player: "BrokenBlade", from: "G2 Esports", to: "Movistar KOI", role: "TOP", status: "confirmed", note: "Joined Movistar KOI (reported by Sheep and Dot Esports 8 to 13 Nov, confirmed 19 Nov 2026)"},
 ];
