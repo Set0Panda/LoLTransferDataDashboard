@@ -167,21 +167,32 @@
     rumIn = T.map(() => []); rumOut = new Map(); rumAway = new Map(); RUMITEMS = new Map();
     const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo) && NOW - Date.parse(i.published || i.seen) < RUM_DAYS * MS);
     // A player who is confirmed somewhere (override, or an official-style headline like "LYON re-sign X") can't also be rumoured to other teams.
-    const confirmedTo = new Map(), confirmedVia = (h, ti) => { if (!confirmedTo.has(h)) confirmedTo.set(h, new Set()); confirmedTo.get(h).add(ti); };
+    const confirmedTo = new Map(), confirmedVia = (h, ti, it) => { if (!confirmedTo.has(h)) confirmedTo.set(h, new Map()); if (!confirmedTo.get(h).has(ti)) confirmedTo.get(h).set(ti, it || null); };
     OV.forEach(o => { const to = teamByName[norm(o.to || "")]; if (o.status === "confirmed" && to !== undefined) confirmedVia(norm(o.player), canon[to]); });
+    const SCOOPY = /^\s*sources?:|set to|about to|reportedly|expected|likely|rumou?r|linked|in talks|target|open to|interested|verbal agreement|could|\bmay\b|might|eyeing?|looking|considering|pursu/i;
+    const segHandles = str => str.split(/,|\band\b|\balongside\b|&/i).map(seg => handleOf(seg.replace(/\s+(?:returns?|departs?|leaves?|exits?|moves?)\b.*$/i, "").replace(/\b(?:ahead|for|as|to|through|on|with|from|in|after|following|on a)\b.*$/i, "").trim())).filter(Boolean);
     items.forEach(it => {
-      if (/^\s*sources?:|set to|reportedly|expected|rumou?r|linked|in talks|target|open to|interested/i.test(it.title)) return;
-      const m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|officially\s+(?:sign|add|acquire)s?)\s+(.+)$/i);
-      if (!m) return;
-      const tm = teamsIn(m[1], true)[0]; if (!tm) return;
-      m[2].split(/,|\band\b|\balongside\b/i).forEach(seg => {
-        const pl = handleOf(seg.replace(/\b(?:for|as)\b.*$/i, "").trim()); if (!pl) return;
-        const h = norm(pl); if (handleIdx.has(h) || multiIdx.has(h)) confirmedVia(h, canon[tm.ti]);
-      });
+      if (SCOOPY.test(it.title)) return;
+      let m, pls = [], tm = null;
+      if ((m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|acquire(?:s|d)?|add(?:s|ed)?|land(?:s|ed)?|bring(?:s)?\s+in)\s+(.+)$/i))) { tm = teamsIn(m[1], true)[0]; if (tm) pls = segHandles(m[2]); }
+      if (!pls.length && (m = it.title.match(/^(.+?)\s+(?:re-?sign(?:s)?\s+with|returns?\s+to\s+join|(?:departs?|leaves?|exits?)\s+.+?\s+to\s+join|to\s+join|joins?)\s+(.+)$/i))) { tm = teamsIn(m[2], true)[0]; if (tm) pls = segHandles(m[1]); }
+      if (!tm) return;
+      pls.forEach(pl => confirmedVia(norm(pl), canon[tm.ti], it));
     });
     const addIn = (name, ti, role, fromTi, it) => {
       const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];
-      if (confirmedTo.has(h) && !confirmedTo.get(h).has(canon[ti])) return;                                           // confirmed elsewhere: this rumour is dead
+      const cf = confirmedTo.get(h);
+      if (cf && !cf.has(canon[ti])) return;                                                                            // confirmed elsewhere: this rumour is dead
+      if (cf && cf.has(canon[ti])) {                                                                                   // confirmed here by an official-style headline: show it as confirmed, not rumoured
+        const ci = cf.get(canon[ti]); if (!ci) return;                                                                 // (override-confirmed players are already in incoming)
+        if (incoming[ti].some(x => norm(x.name) === h)) return;
+        if (fromTi == null) { const c = cand.find(x => x.ti !== ti && (!role || x.p.role === role)) || cand.find(x => x.ti !== ti); if (c) fromTi = c.ti; }
+        if (!role) { const c = cand.find(x => STARTERS.includes(x.p.role) || x.p.role === "COACH"); role = c ? c.p.role : ""; }
+        const o = { player: name, url: ci.url, note: ci.source + " headline", status: "confirmed", headline: true };
+        incoming[ti].push({ name, role, from: fromTi != null ? T[fromTi].name : "", o });
+        if (fromTi != null && fromTi !== ti && !leaving[fromTi + "|" + h]) leaving[fromTi + "|" + h] = Object.assign({ to: T[ti].name }, o);
+        return;
+      }
       if (!role) { const c = cand.find(x => STARTERS.includes(x.p.role) || x.p.role === "COACH"); role = c ? c.p.role : ""; }
       const own = cand.find(c => c.ti === ti); if (own && own.p.ms != null && own.p.ms > cut) return;                    // already signed there on the sheet
       if (incoming[ti].some(x => norm(x.name) === h)) return;                                                         // already confirmed in overrides
