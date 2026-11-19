@@ -1,0 +1,31 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: {node-version: 24}
+      - run: |
+          mkdir -p /tmp/new && cp docs/contract/*.js /tmp/new/
+          node scripts/contract_refresh.js --out /tmp/new --force 2>&1 | tail -20 || true
+          python3 - <<'PY'
+          import re,json,collections
+          def load(p):
+              s=open(p).read()
+              T=json.loads(re.search(r"GCD_TEAMS = (\[.*?\]);",s,re.S).group(1)); R=json.loads(re.search(r"GCD_ROWS = (\[.*?\]);",s,re.S).group(1))
+              m=re.search(r"GCD_META = (\{.*?\});",s); 
+              return T,R,json.loads(m.group(1))
+          To,Ro,Mo=load('docs/contract/data.js'); Tn,Rn,Mn=load('/tmp/new/data.js')
+          print('OLD meta',Mo); print('NEW meta',Mn)
+          key=lambda T,r:(T[r[0]][0],T[r[0]][2],r[1])
+          O={key(To,r):r for r in Ro}; N={key(Tn,r):r for r in Rn}
+          for reg in ['AME','CN','EMEA','KR','LCP']:
+              gone=[k for k in O if k[0]==reg and k not in N]; new=[k for k in N if k[0]==reg and k not in O]
+              ends=collections.Counter(O[k][3][:4] if O[k][3] else '' for k in gone)
+              print(reg,'old',sum(1 for k in O if k[0]==reg),'new',sum(1 for k in N if k[0]==reg),'gone',len(gone),'added',len(new),'gone-by-end',dict(ends))
+              print('  gone sample',[(k[1],k[2],O[k][3]) for k in gone[:12]])
+              print('  added sample',[(k[1],k[2],N[k][3]) for k in new[:8]])
+              tg=collections.Counter(k[1] for k in gone); print('  teams losing rows',tg.most_common(10))
+          PY
