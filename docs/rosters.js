@@ -166,8 +166,22 @@
   function buildRumours() {
     rumIn = T.map(() => []); rumOut = new Map(); rumAway = new Map(); RUMITEMS = new Map();
     const items = ((window.RADAR && window.RADAR.items) || []).filter(i => MENTION_CATS.has(i.category) && !(window.RADAR.meta && window.RADAR.meta.demo) && NOW - Date.parse(i.published || i.seen) < RUM_DAYS * MS);
+    // A player who is confirmed somewhere (override, or an official-style headline like "LYON re-sign X") can't also be rumoured to other teams.
+    const confirmedTo = new Map(), confirmedVia = (h, ti) => { if (!confirmedTo.has(h)) confirmedTo.set(h, new Set()); confirmedTo.get(h).add(ti); };
+    OV.forEach(o => { const to = teamByName[norm(o.to || "")]; if (o.status === "confirmed" && to !== undefined) confirmedVia(norm(o.player), canon[to]); });
+    items.forEach(it => {
+      if (/^\s*sources?:|set to|reportedly|expected|rumou?r|linked|in talks|target|open to|interested/i.test(it.title)) return;
+      const m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|officially\s+(?:sign|add|acquire)s?)\s+(.+)$/i);
+      if (!m) return;
+      const tm = teamsIn(m[1], true)[0]; if (!tm) return;
+      m[2].split(/,|\band\b|\balongside\b/i).forEach(seg => {
+        const pl = handleOf(seg.replace(/\b(?:for|as)\b.*$/i, "").trim()); if (!pl) return;
+        const h = norm(pl); if (handleIdx.has(h) || multiIdx.has(h)) confirmedVia(h, canon[tm.ti]);
+      });
+    });
     const addIn = (name, ti, role, fromTi, it) => {
       const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];
+      if (confirmedTo.has(h) && !confirmedTo.get(h).has(canon[ti])) return;                                           // confirmed elsewhere: this rumour is dead
       if (!role) { const c = cand.find(x => STARTERS.includes(x.p.role) || x.p.role === "COACH"); role = c ? c.p.role : ""; }
       const own = cand.find(c => c.ti === ti); if (own && own.p.ms != null && own.p.ms > cut) return;                    // already signed there on the sheet
       if (incoming[ti].some(x => norm(x.name) === h)) return;                                                         // already confirmed in overrides

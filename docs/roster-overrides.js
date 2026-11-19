@@ -57,4 +57,5 @@ window.ROSTER_OVERRIDES = [
 {player: "Lyn", from: "Gen.G", status: "confirmed", note: "Leaguepedia roster change, 13 May 2026"},
 {player: "Kino", from: "CTBC Flying Oyster", status: "confirmed", note: "Leaguepedia roster change, 28 Jul 2026"},
 {player: "Evi", from: "Fukuoka SoftBank HAWKS gaming", status: "confirmed", note: "Leaguepedia roster change, 4 Sep 2026"},
+{player: "Naak Nako", from: "Team Vitality", to: "LYON", role: "TOP", status: "confirmed", note: "LYON 2027 roster announcement (EGamersWorld, 18 Nov 2026); Sheep reported it 17 Nov"},
 ];
