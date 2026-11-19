@@ -81,6 +81,17 @@ function loadWin(file){const w={};new Function('window',fs.readFileSync(file,'ut
 const BAND=0.15,CAP_DROP=0.5,CAP_GROW=1.0;
 const FORCE=args.includes('--force')||process.env.ALLOW_BIG_CHANGE==='1';
 function regionCounts(teams,rows){const c={};rows.forEach(r=>{const t=teams[r[0]];if(t)c[t[0]]=(c[t[0]]||0)+1});return c}
+// A post-deadline purge: Riot deletes rows whose contract has already ended but doesn't touch its own "last updated" stamp.
+// Accept a drop when the removed rows are (almost) all expired; anything else still needs the stamp or a human.
+function expiredPurge(g,N,P,today){
+  const key=(T,r)=>{const t=T[r[0]];return t&&t[0]===g?t[0]+'|'+t[2]+'|'+r[1]:null};
+  const nk=new Set(N.rows.map(r=>key(N.teams,r)).filter(Boolean));
+  const gone=P.GCD_ROWS.filter(r=>{const k=key(P.GCD_TEAMS,r);return k&&!nk.has(k)});
+  if(!gone.length)return false;
+  const y=+today.slice(0,4),done=e=>!e?false:/^W\d{4}$/.test(e)?(+e.slice(1)<y||(+e.slice(1)===y&&today.slice(5)>='11-02')):e<=today;
+  const live=gone.filter(r=>!done(r[3])).length;
+  return live<=Math.max(3,Math.round(0.05*gone.length));
+}
 function checks(N,P){
   const e=[],w=[],ov=[];
   const regs=new Set(N.teams.map(t=>t[0]));for(const r of Object.keys(GIDS))if(!regs.has(r))e.push('region missing: '+r);
@@ -95,6 +106,7 @@ function checks(N,P){
       if(Math.abs(ch)<=BAND)continue;
       const moved=!sheetOld||sheetNew>sheetOld;
       let msg=null;
+      if(ch<0&&!moved&&expiredPurge(g,N,P,new Date().toISOString().slice(0,10))){w.push(`${g}: ${a} -> ${b} rows (${pct}); accepted as an expired-contract purge (removed rows have all ended)`);continue}
       if(!moved)msg=`${g}: ${a} -> ${b} rows (${pct}) but the sheet's own last-updated stamp did not move (${sheetNew}). Looks like a partial or malformed fetch`;
       else if(ch<-CAP_DROP||ch>CAP_GROW)msg=`${g}: ${a} -> ${b} rows (${pct}) is beyond what is accepted automatically, even though the sheet stamp moved (${sheetOld} -> ${sheetNew}). Needs a human look`;
       if(msg){if(FORCE)w.push('FORCED, accepted anyway: '+msg);else ov.push(msg)}
