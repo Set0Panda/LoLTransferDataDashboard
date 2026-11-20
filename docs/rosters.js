@@ -189,8 +189,11 @@
       if (all.some(c => c.ti === ti && c.p.ms != null && c.p.ms > cut)) return;                                      // already signed there on the sheet
       const c = all.find(x => T[x.ti].reg === T[ti].reg && x.ti !== ti && STARTERS.includes(x.p.role)) || all.find(x => T[x.ti].reg === T[ti].reg && x.ti !== ti);
       const name = shown.get(h) || h, o = { player: name, url: ci.url, note: ci.source + " headline", status: "confirmed", headline: true };
-      incoming[ti].push({ name, role: c ? c.p.role : "", from: c ? T[c.ti].name : "", o });
-      if (c && !leaving[c.ti + "|" + h]) leaving[c.ti + "|" + h] = Object.assign({ to: T[ti].name }, o);
+      const pr = (window.PLAYER_ROLES || {})[T[ti].reg + "|" + h];                                                   // last-known role/team, for players whose sheet row Riot has purged
+      const role = c ? c.p.role : pr ? pr[0] : "", fromName = c ? T[c.ti].name : pr && teamByName[norm(pr[1])] !== undefined && canon[teamByName[norm(pr[1])]] !== ti ? pr[1] : "";
+      incoming[ti].push({ name, role, from: fromName, o });
+      const fi = c ? c.ti : fromName ? canon[teamByName[norm(fromName)]] : undefined;
+      if (fi !== undefined && !leaving[fi + "|" + h]) leaving[fi + "|" + h] = Object.assign({ to: T[ti].name }, o);
     }));
     const addIn = (name, ti, role, fromTi, it) => {
       const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];

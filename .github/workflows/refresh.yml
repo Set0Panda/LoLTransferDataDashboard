@@ -40,6 +40,8 @@ jobs:
               rm -f docs/contract/*.new
             fi
           fi
+      - name: Remember last-known roles (so purged contracts still map to a slot)
+        run: python3 scripts/player_roles.py
       - name: LCK/LPL coaches from Leaguepedia (skips itself until the bot secrets exist; never blocks the refresh)
         continue-on-error: true
         env:
