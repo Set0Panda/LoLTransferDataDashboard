@@ -106,7 +106,7 @@ function checks(N,P){
       if(Math.abs(ch)<=BAND)continue;
       const moved=!sheetOld||sheetNew>sheetOld;
       let msg=null;
-      if(ch<0&&!moved&&expiredPurge(g,N,P,new Date().toISOString().slice(0,10))){w.push(`${g}: ${a} -> ${b} rows (${pct}); accepted as an expired-contract purge (removed rows have all ended)`);continue}
+      if(ch<0&&expiredPurge(g,N,P,new Date().toISOString().slice(0,10))){w.push(`${g}: ${a} -> ${b} rows (${pct}); accepted as an expired-contract purge (removed rows have all ended)`);continue}
       if(!moved)msg=`${g}: ${a} -> ${b} rows (${pct}) but the sheet's own last-updated stamp did not move (${sheetNew}). Looks like a partial or malformed fetch`;
       else if(ch<-CAP_DROP||ch>CAP_GROW)msg=`${g}: ${a} -> ${b} rows (${pct}) is beyond what is accepted automatically, even though the sheet stamp moved (${sheetOld} -> ${sheetNew}). Needs a human look`;
       if(msg){if(FORCE)w.push('FORCED, accepted anyway: '+msg);else ov.push(msg)}
