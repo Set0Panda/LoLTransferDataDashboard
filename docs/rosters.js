@@ -169,6 +169,7 @@
     // A player who is confirmed somewhere (override, or an official-style headline like "LYON re-sign X") can't also be rumoured to other teams.
     const confirmedTo = new Map(), confirmedVia = (h, ti, it) => { if (!confirmedTo.has(h)) confirmedTo.set(h, new Map()); if (!confirmedTo.get(h).has(ti)) confirmedTo.get(h).set(ti, it || null); };
     OV.forEach(o => { const to = teamByName[norm(o.to || "")]; if (o.status === "confirmed" && to !== undefined) confirmedVia(norm(o.player), canon[to]); });
+    const shown = new Map();
     const SCOOPY = /^\s*sources?:|set to|about to|reportedly|expected|likely|rumou?r|linked|in talks|target|open to|interested|verbal agreement|could|\bmay\b|might|eyeing?|looking|considering|pursu/i;
     const segHandles = str => str.split(/,|\band\b|\balongside\b|&/i).map(seg => handleOf(seg.replace(/\s+(?:returns?|departs?|leaves?|exits?|moves?)\b.*$/i, "").replace(/\b(?:ahead|for|as|to|through|on|with|from|in|after|following|on a)\b.*$/i, "").trim())).filter(Boolean);
     items.forEach(it => {
@@ -177,8 +178,20 @@
       if ((m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|acquire(?:s|d)?|add(?:s|ed)?|land(?:s|ed)?|bring(?:s)?\s+in)\s+(.+)$/i))) { tm = teamsIn(m[1], true)[0]; if (tm) pls = segHandles(m[2]); }
       if (!pls.length && (m = it.title.match(/^(.+?)\s+(?:re-?sign(?:s)?\s+with|returns?\s+to\s+join|(?:departs?|leaves?|exits?)\s+.+?\s+to\s+join|to\s+join|joins?)\s+(.+)$/i))) { tm = teamsIn(m[2], true)[0]; if (tm) pls = segHandles(m[1]); }
       if (!tm) return;
-      pls.forEach(pl => confirmedVia(norm(pl), canon[tm.ti], it));
+      pls.forEach(pl => { confirmedVia(norm(pl), canon[tm.ti], it); if (!shown.has(norm(pl))) shown.set(norm(pl), pl); });
     });
+    // Official-style headline confirmations go on the destination card even when no rumour (or sheet row) exists for the player.
+    confirmedTo.forEach((m, h) => m.forEach((ci, ti) => {
+      if (!ci || incoming[ti].some(x => norm(x.name) === h)) return;
+      const disp = shown.get(h) || "";
+      if (!/^[A-Z0-9]/.test(disp) || /^(gaming|hiatus|esports|club|academy|league|season|roster|worlds|msi|lec|lcs|lck|lpl|lcp|cblol|back|major|signings|optic|rebellion|vitality|liquid|cloud|fnatic)$/i.test(disp) || teamsIn(disp, false).length) return;   // junk handles and team names
+      const all = handleIdx.get(h) || multiIdx.get(h) || [];
+      if (all.some(c => c.ti === ti && c.p.ms != null && c.p.ms > cut)) return;                                      // already signed there on the sheet
+      const c = all.find(x => T[x.ti].reg === T[ti].reg && x.ti !== ti && STARTERS.includes(x.p.role)) || all.find(x => T[x.ti].reg === T[ti].reg && x.ti !== ti);
+      const name = shown.get(h) || h, o = { player: name, url: ci.url, note: ci.source + " headline", status: "confirmed", headline: true };
+      incoming[ti].push({ name, role: c ? c.p.role : "", from: c ? T[c.ti].name : "", o });
+      if (c && !leaving[c.ti + "|" + h]) leaving[c.ti + "|" + h] = Object.assign({ to: T[ti].name }, o);
+    }));
     const addIn = (name, ti, role, fromTi, it) => {
       const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];
       const cf = confirmedTo.get(h);
@@ -342,9 +355,9 @@
       joins.forEach(j => { projected++; main += `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">from ${esc(j.from || "?")}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`; });
       if (signed.length) { projected += joins.length ? 0 : 1; main += signed.map(p => `<div>${nm(p)} <span class="ok">to ${esc(endYear(p))}</span></div>`).join(""); }
       if (!signed.length && !joins.length) { open = true; main += `<div class="open">Open</div>`; }
-      if (expiring.length) main += `<div class="ex">${signed.length || joins.length ? "also " : ""}expiring: ${expiring.map(nm).join(", ")}</div>`;
-      if (noDate.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
-      rumIn[t.i].filter(r => r.role === role).forEach(r => { hasRumor = true; main += rumLine(t.i, r); });
+      if (expiring.length && !joins.length) main += `<div class="ex">${signed.length ? "also " : ""}expiring: ${expiring.map(nm).join(", ")}</div>`;   // a confirmed signing settles the slot: no expiring list or rival rumours
+      if (noDate.length && !joins.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
+      if (!joins.length) rumIn[t.i].filter(r => r.role === role).forEach(r => { hasRumor = true; main += rumLine(t.i, r); });
       cells[role] = { st, html: main };
       return `<div class="rrow" data-s="${st}"><span class="rl">${role}</span><div>${main}</div></div>`;
     }).join("");
@@ -352,15 +365,18 @@
     const cSigned = cs.filter(p => p.ms != null && p.ms > cut), cExp = cs.filter(p => p.ms != null && p.ms <= cut), cNo = cs.filter(p => p.ms == null);
     let coachMain = incoming[t.i].filter(x => x.role === "COACH").map(j => `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">from ${esc(j.from || "?")}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`).join("");
     coachMain += cSigned.map(p => `<div>${nm(p)} <span class="ok">to ${esc(endYear(p))}</span></div>`).join("");
-    if (cExp.length) coachMain += `<div class="ex">expiring: ${cExp.map(nm).join(", ")}</div>`;
-    if (cNo.length) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
-    rumIn[t.i].filter(r => r.role === "COACH").forEach(r => { hasRumor = true; coachMain += rumLine(t.i, r); });
+    const coachDone = incoming[t.i].some(x => x.role === "COACH");
+    if (cExp.length && !coachDone) coachMain += `<div class="ex">expiring: ${cExp.map(nm).join(", ")}</div>`;
+    if (cNo.length && !coachDone) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
+    if (!coachDone) rumIn[t.i].filter(r => r.role === "COACH").forEach(r => { hasRumor = true; coachMain += rumLine(t.i, r); });
     if (!coachMain) coachMain = `<div class="ex">${hasCoachData[t.reg] ? "none listed" : "not in this region's sheet"}</div>`;
     cells.COACH = { st: "", html: coachMain };
     const coachHtml = `<div class="rrow"><span class="rl">COACH</span><div>${coachMain}</div></div>`;
     const rumOther = rumIn[t.i].filter(r => !STARTERS.includes(r.role) && r.role !== "COACH");
     rumOther.forEach(() => { hasRumor = true; });
     const rumOtherHtml = rumOther.length ? `<div class="rrow"><span class="rl">RUMOUR</span><div>${rumOther.map(r => rumLine(t.i, r, false)).join("")}</div></div>` : "";
+    const newSigned = incoming[t.i].filter(x => !STARTERS.includes(x.role) && x.role !== "COACH");
+    const newHtml = newSigned.length ? `<div class="rrow"><span class="rl">SIGNED</span><div>${newSigned.map(j => `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">${j.from ? "from " + esc(j.from) : "role not listed"}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`).join("")}</div></div>` : "";
     const subs = base.filter(p => !STARTERS.includes(p.role));
     const subHtml = subs.length ? `<div class="rrow"><span class="rl">OTHER</span><div class="ex">${subs.map(p => esc(p.name) + (p.ms != null ? (p.ms > cut ? ` (to ${esc(endYear(p))})` : " (expiring)") : "")).join(", ")}</div></div>` : "";
     const leftHtml = gone.length ? `<div class="rrow"><span class="rl">LEAVING</span><div class="ex">${gone.map(p => { const o = leaving[t.i + "|" + norm(p.name)]; return esc(p.name) + (o.to ? " → " + esc(o.to) : ""); }).join(", ")} <span class="tagc">CONFIRMED</span></div></div>` : "";
@@ -368,10 +384,10 @@
     const rumorHtml = rumorTags[t.i].length ? rumorTags[t.i].map(o => `<div class="rnews"><span class="tagr">RUMOR</span> ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">` : ""}${esc(o.player)}${o.from ? " from " + esc(o.from) : ""}${o.to ? " → " + esc(o.to) : ""}${o.url ? "</a>" : ""}${o.note ? ` <span class="ex">${esc(o.note)}</span>` : ""}</div>`).join("") : "";
     const newsHtml = (news.length || rumorHtml) ? `<div class="rnewswrap"><div class="rl">NEWS${news.some(isScoop) ? ' <span class="rnote">&middot; includes unconfirmed reports from sources</span>' : ""}${teamUniq.length > news.length ? ` · <button type="button" class="linkbtn" data-tm="${t.i}">see all ${teamUniq.length}</button>` : ""}</div>${rumorHtml}${news.map(i => `<div class="rnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(showTitle(i.title))}</a> <span class="ex">${esc(i.source)} · ${Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS))}d</span></div>`).join("")}</div>` : "";
         const bar = `<div class="rbar" title="${projected} of 5 starting slots projected; green = signed past the aligned date, amber = only expiring contracts, grey = open">${sts.map(x => `<i class="${x}"></i>`).join("")}</div>`;
-    PARTS[t.i] = { cells, bar, rumOther, hasRumor, slots, coachHtml: coachHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
+    PARTS[t.i] = { cells, bar, rumOther, hasRumor, slots, coachHtml: coachHtml + newHtml + rumOtherHtml, subHtml, leftHtml, projected, rumors: rumorHtml };
     const tone = projected >= 4 ? "g" : projected >= 2 ? "a" : "r";
         return { t, projected, tone, rank: rk ? rk.rank : null, html: `<article class="rcard" id="rc-${t.i}" data-n="${esc(t.name)}"><header class="rhead" data-tm="${t.i}" title="Open team panel">${logo(t)}<div class="rtitle"><h3>${esc(t.name)}</h3><div class="rmeta">${rk ? `<span class="rrank" title="Rank in ${esc(t.lg)}">#${rk.rank}</span> ${esc(rk.rec)}${rk.place ? ` <span class="rplace" title="Playoff result this season. The #rank and record are from the regular season.">${esc(rk.place)}</span>` : ""}` : esc(t.code || "")}</div></div>${bar}</header>
-      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p><div class="rlinked">${hasRumor ? `<button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button>` : ""}</div>${slots}${coachHtml}<div class="rxtra">${rumOtherHtml}${subHtml}${leftHtml}</div></article>`,
+      <p class="rsum">${projected} of 5 starting slots projected for ${next ? new Date(next).getUTCFullYear() + 1 : ""}</p><div class="rlinked">${hasRumor ? `<button type="button" class="tagr tagbtn" data-tm="${t.i}">LINKED IN NEWS</button>` : ""}</div>${slots}${coachHtml}${newHtml}<div class="rxtra">${rumOtherHtml}${subHtml}${leftHtml}</div></article>`,
       flagged: open || hasRumor || rumorTags[t.i].length > 0 || incoming[t.i].length > 0 };
   }
 
