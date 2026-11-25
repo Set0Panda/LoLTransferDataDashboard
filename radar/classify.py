@@ -48,6 +48,15 @@ def _load_lol_names():
     for r in rows:
         h = (r[1] or "").strip()
         if len(h) >= 4 and h.lower() not in common and h.lower() not in PLAYER_STOP: names.add(h.lower())
+    # Riot purges rows after a contract ends, so the players of the moment (expired, re-signing or moving) drop out of data.js.
+    # player-roles.js remembers every handle ever seen on the sheet; without it those headlines would score 0 right when they matter.
+    try:
+        pr = json.loads(re.search(r"PLAYER_ROLES\s*=\s*(\{.*\});", (root / "player-roles.js").read_text(encoding="utf-8"), re.S).group(1))
+        for k in pr:
+            h = k.split("|", 1)[-1].strip()
+            if len(h) >= 4 and h not in common and h not in PLAYER_STOP: names.add(h)
+    except Exception:
+        pass
     return re.compile(r"(?<![a-z0-9])(" + "|".join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r")(?![a-z0-9])", re.I)
 
 
