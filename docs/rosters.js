@@ -25,6 +25,18 @@
 
   // ---- teams, rows (same cleaning rules as Contract Radar) ----
   const T = window.GCD_TEAMS.map((t, i) => ({ i, reg: t[0], lg: t[1] || "(no league)", name: t[2], code: t[3] }));
+  // Riot drops a team from the sheet once none of its contracts are left (GiantX, Shifters after the deadline); keep it from the standings so its signings and rumours stay visible.
+  try {
+    const SL = (window.STANDINGS || {}).leagues || {}, AL = (window.STANDINGS || {}).aliases || {};
+    Object.keys(SL).forEach(lg => {
+      const ref = T.find(t => t.lg === lg); if (!ref) return;
+      (SL[lg].teams || []).forEach(st => {
+        const nm = AL[st.name] || st.name;
+        const cp = n => norm(n).replace(/\(.*?\)/g, "").replace(/[^a-z0-9]/g, ""), c1 = cp(nm);          // "Team WE" vs "Xi'an Team WE", "WeiboGaming", "LYON (2024 American Team)"
+        if (!T.some(t => t.reg === ref.reg && t.lg === lg && (cp(t.name) === c1 || (c1.length >= 5 && cp(t.name).length >= 5 && (cp(t.name).includes(c1) || c1.includes(cp(t.name))))))) T.push({ i: T.length, reg: ref.reg, lg, name: nm, code: "", stub: true });
+      });
+    });
+  } catch (e) {}
   const canon = T.map(t => t.i), seenK = {};
   T.forEach(t => { const k = t.reg + "|" + t.name; if (seenK[k] === undefined) seenK[k] = t.i; else if (t.lg === "(no league)") canon[t.i] = seenK[k]; });
   const HAS_X = Object.keys(XR).length > 0;
@@ -36,6 +48,7 @@
     return true;
   });
   const byTeam = T.map(() => []), coaches = T.map(() => []), hasCoachData = {};
+  const capList = (a, n = 3) => a.length <= n ? a.join("") : a.slice(0, n).join("") + `<details class="rmore"><summary>+${a.length - n} more rumoured</summary>${a.slice(n).join("")}</details>`;   // teams with no contracts left (Vitality) otherwise list 20+ rumours
   const endYear = p => (p.end || "").replace(/^W/, "").slice(0, 4);   // "2027-11-15" and "W2027" (day after Worlds 2027) both -> 2027
   rows.forEach(r => {
     const ti = canon[r[0]], t = T[ti];
@@ -364,7 +377,7 @@
       const rest = signed.length ? expiring : ended;
       if (rest.length && !joins.length) main += `<div class="ex">${signed.length ? "also expiring" : "contract ended"}: ${rest.map(nm).join(", ")}</div>`;   // a confirmed signing settles the slot: no expiring list or rival rumours
       if (noDate.length && !joins.length) main += `<div class="ex">no end date: ${noDate.map(nm).join(", ")}</div>`;
-      if (!joins.length) rumIn[t.i].filter(r => r.role === role).forEach(r => { hasRumor = true; main += rumLine(t.i, r); });
+      if (!joins.length) main += capList(rumIn[t.i].filter(r => r.role === role).map(r => { hasRumor = true; return rumLine(t.i, r); }));
       cells[role] = { st, html: main };
       return `<div class="rrow" data-s="${st}"><span class="rl">${role}</span><div>${main}</div></div>`;
     }).join("");
@@ -375,13 +388,14 @@
     const coachDone = incoming[t.i].some(x => x.role === "COACH");
     if (cExp.length && !coachDone) coachMain += `<div class="ex">expiring: ${cExp.map(nm).join(", ")}</div>`;
     if (cNo.length && !coachDone) coachMain += `<div class="ex">no end date: ${cNo.map(nm).join(", ")}</div>`;
-    if (!coachDone) rumIn[t.i].filter(r => r.role === "COACH").forEach(r => { hasRumor = true; coachMain += rumLine(t.i, r); });
+    if (!coachDone) coachMain += capList(rumIn[t.i].filter(r => r.role === "COACH").map(r => { hasRumor = true; return rumLine(t.i, r); }));
     if (!coachMain) coachMain = `<div class="ex">${hasCoachData[t.reg] ? "none listed" : "not in this region's sheet"}</div>`;
     cells.COACH = { st: "", html: coachMain };
     const coachHtml = `<div class="rrow"><span class="rl">COACH</span><div>${coachMain}</div></div>`;
-    const rumOther = rumIn[t.i].filter(r => !STARTERS.includes(r.role) && r.role !== "COACH");
+    const slotRumoured = new Set(rumIn[t.i].filter(r => STARTERS.includes(r.role) || r.role === "COACH").map(r => norm(r.name)));
+    const rumOther = rumIn[t.i].filter(r => !STARTERS.includes(r.role) && r.role !== "COACH" && !slotRumoured.has(norm(r.name)));
     rumOther.forEach(() => { hasRumor = true; });
-    const rumOtherHtml = rumOther.length ? `<div class="rrow"><span class="rl">RUMOUR</span><div>${rumOther.map(r => rumLine(t.i, r, false)).join("")}</div></div>` : "";
+    const rumOtherHtml = rumOther.length ? `<div class="rrow"><span class="rl">RUMOUR</span><div>${capList(rumOther.map(r => rumLine(t.i, r, false)))}</div></div>` : "";
     const newSigned = incoming[t.i].filter(x => !STARTERS.includes(x.role) && x.role !== "COACH");
     const newHtml = newSigned.length ? `<div class="rrow"><span class="rl">SIGNED</span><div>${newSigned.map(j => `<div><span class="pl">${esc(j.name)}</span> <span class="tagc">CONFIRMED</span> <span class="ex">${j.from ? "from " + esc(j.from) : "role not listed"}${j.o.url ? ` · <a href="${esc(j.o.url)}" target="_blank" rel="noopener">source</a>` : ""}</span></div>`).join("")}</div></div>` : "";
     const subs = base.filter(p => !STARTERS.includes(p.role));
@@ -414,12 +428,12 @@
     if (!next) { box.innerHTML = '<div class="card empty">No aligned end date left in the calendar.</div>'; return; }
     const [reg, lg] = S.lg.split("|");
     const q = norm(S.q).trim();
-    const teams = T.filter(t => t.i === canon[t.i] && byTeam[t.i].length && (q ? true : t.reg === reg && t.lg === lg))
+    const teams = T.filter(t => t.i === canon[t.i] && (byTeam[t.i].length || t.stub) && (q ? true : t.reg === reg && t.lg === lg))
       .filter(t => !q || norm(t.name).includes(q) || byTeam[t.i].some(p => norm(p.name).includes(q)))
       .sort((a, b) => { const ra = rankOf(a), rb = rankOf(b); return q ? a.name.localeCompare(b.name) : ((ra ? ra.rank : 999) - (rb ? rb.rank : 999)) || a.name.localeCompare(b.name); });
     let cards = teams.map(card);
     if (S.only) cards = cards.filter(c => c.flagged);
-    const strip = (VIEW === "cards" && !q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.set27}/5 slots set for the coming season">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.projected}/5</span></button>`).join("")}</div>` : "";
+    const strip = (VIEW === "cards" && !q && cards.length > 1) ? `<div class="rstrip">${cards.map(c => `<button class="rchip t-${c.tone}" data-go="rc-${c.t.i}" title="${esc(c.t.name)}: ${c.set27}/5 slots set for the coming season">${c.rank ? `<b>#${c.rank}</b>` : ""}${logo(c.t)}<span>${c.set27}/5</span></button>`).join("")}</div>` : "";
     const upd = META.updated && META.updated[reg], age = upd ? Math.floor((NOW - Date.parse(upd + "T00:00:00Z")) / MS) : null;
     const warn = age != null && age > 14 && !q ? `<div class="rwarn"><b>This region's sheet is ${age} days old</b> (last updated ${fmtDate(upd)}). Moves since then may be missing.</div>` : "";
     const sv = ST.leagues && ST.leagues[lg];
@@ -433,7 +447,7 @@
     box.innerHTML = `<section class="filters"><div class="row"><input class="search" id="rq" type="search" placeholder="Search a team or player across all leagues…" value="${esc(S.q)}" aria-label="Search rosters">
       <button class="chip" id="ronly" aria-pressed="${S.only}">Only open or flagged teams</button>
       <span class="seg" role="group" aria-label="Layout"><button class="chip" data-view="cards" aria-pressed="${VIEW === "cards"}">Cards</button><button class="chip" data-view="matrix" aria-pressed="${VIEW === "matrix"}">Matrix</button></span></div>${sel}
-      <div class="hint" style="margin:0">Rosters for the ${new Date(next).getUTCFullYear()} season. A slot is set when the sheet lists a player under contract, or a signing is confirmed. Players whose contract ends on ${fmtDate(next)} are shown as the current holder and marked as expiring after the season; "locked for ${new Date(next).getUTCFullYear() + 1}" counts only slots with a contract running past that date. Open means nobody is under contract, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}${warn}${sWarn}</section>
+      <details class="hintd"><summary>How to read these cards</summary>      <div class="hint" style="margin:0">Rosters for the ${new Date(next).getUTCFullYear()} season. A slot is set when the sheet lists a player under contract, or a signing is confirmed. Players whose contract ends on ${fmtDate(next)} are shown as the current holder and marked as expiring after the season; "locked for ${new Date(next).getUTCFullYear() + 1}" counts only slots with a contract running past that date. Open means nobody is under contract, not that the slot is empty: extensions and signings often aren't on the sheet yet. "Mentions" are headlines from the feed that name the player.</div>${order}</details>${warn}${sWarn}</section>
       ${strip}
       ${VIEW === "matrix" ? (cards.length ? matrix(cards) : '<div class="card empty">No teams match.</div>') : `<div class="rgrid">${cards.map(c => c.html).join("") || '<div class="card empty">No teams match.</div>'}</div>`}
       <p class="hint">Contract data and logos come from <a href="https://set0panda.github.io/contract-radar/" target="_blank" rel="noopener">Contract Radar</a> (snapshot ${esc((META.asOf) || "?")}). Team logos are trademarks of their owners.</p>

@@ -76,6 +76,8 @@
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:12px; margin-bottom:16px; }
   h2 { font-size:13px; margin:0 0 2px; font-weight:600; }
   .hint { color:var(--ink3); font-size:12px; margin-bottom:10px; }
+  .rmore { margin-top:4px; } .rmore summary { cursor:pointer; color:var(--ink3); font-size:12px; }
+  .hintd { margin:6px 0 10px; } .hintd summary { cursor:pointer; color:var(--ink3); font-size:12px; font-weight:600; } .hintd .hint { margin-top:6px; }
   .bars { display:grid; gap:7px; }
   .bar { display:grid; grid-template-columns:132px 1fr 64px; gap:10px; align-items:center; font-size:13px; cursor:default; }
   .bar.click { cursor:pointer; }
@@ -589,7 +591,7 @@ $("tabContract").onclick = () => showTab("contract");
 <script src="roster-overrides.js?v=06e36ff6"></script>
 <script src="standings.js?v=9eb7e737"></script>
 <script src="common-words.js?v=10537f26"></script>
-<script src="rosters.js?v=f680bdd4"></script>
+<script src="rosters.js?v=0a9da906"></script>
 <script src="home.js?v=c0af7022"></script>
 <script src="contract.js?v=387f5065"></script>
 <script>showTab(({ "#rosters": "rosters", "#feed": "feed", "#contract": "contract" })[location.hash] || "home");</script>
