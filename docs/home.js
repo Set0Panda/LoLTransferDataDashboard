@@ -19,7 +19,8 @@
       return `<span class="tag">${esc(i.category)}</span>${i.lang ? `<span class="tag" title="Original-language source">${esc(i.lang)}</span>` : ""}${tg.map(x => `<span class="tag">${esc(x)}</span>`).join("")}`;
     };
 
-    const latest = items.slice().sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen)).slice(0, 6);
+    const byNew = items.slice().sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen));
+    const en = byNew.filter(i => !i.lang), latest = (en.length >= 6 ? en : en.concat(byNew.filter(i => i.lang))).slice(0, 6);   // most visitors read English; Korean/Chinese stay in the full feed
     const ago = i => { const d = Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS)); return d === 0 ? "today" : d + "d ago"; };
     const t = typeof showTitle === "function" ? showTitle : (x => x);
     const tile = (n, l, k) => `<div class="hmtile t${k}"><b>${esc(n)}</b><span>${esc(l)}</span></div>`;

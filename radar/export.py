@@ -54,6 +54,25 @@ def _guard(path, items, force):
             raise ExportBlocked("; ".join(bad))
 
 
+def _dedupe(items):
+    """Sheep often posts the same move twice minutes apart ("HamBak rejoins Sentinels" / "HamBak renews with Sentinels").
+    Same source, same lead name, published within 30 minutes: keep the first-listed one."""
+    import re as _re
+    from datetime import datetime as _dt
+    seen, out = {}, []
+    for it in items:
+        lead = _re.sub(r"^\s*sources?:\s*", "", it["title"] or "", flags=_re.I).split(" ")[0].lower()
+        try:
+            t = _dt.fromisoformat((it["published"] or "").replace("Z", "+00:00")).timestamp()
+        except Exception:
+            out.append(it); continue
+        k = (it["source"], lead)
+        if len(lead) >= 3 and any(abs(t - x) <= 1800 for x in seen.get(k, [])):
+            continue
+        seen.setdefault(k, []).append(t); out.append(it)
+    return out
+
+
 def export(con, out_path, max_items=4000, only_if_new_ids=False, force=False):
     rows = con.execute("""SELECT * FROM items ORDER BY COALESCE(published_at, first_seen_at) DESC LIMIT ?""",
                        (max_items,)).fetchall()
@@ -71,6 +90,7 @@ def export(con, out_path, max_items=4000, only_if_new_ids=False, force=False):
                       "metrics": pub, "category": r["category"], "tags": json.loads(r["tags"]),
                       "quality": r["quality"], "tier": r["quality_tier"],
                       "breakdown": json.loads(r["quality_breakdown"]), "relevance": r["relevance"]})
+    items = _dedupe(items)
     if only_if_new_ids and _existing_ids(out_path) == {i['id'] for i in items}:
         return 0          # nothing new: leave the file alone so the fast job makes no commit
     _guard(out_path, items, force)

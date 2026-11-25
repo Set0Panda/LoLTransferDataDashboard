@@ -305,6 +305,12 @@
   const LG_SHORT = { "Circuito Desafiante": "CD" };
   const leagueOf = it => {      // up to two leagues, most-named first ("LPL · LCK" when a story spans both)
     const c = {}; (itemAny.get(it.url) || []).forEach(ti => { const l = T[ti] && T[ti].lg; if (l && l !== "(no league)") c[l] = (c[l] || 0) + 1; });
+    const tagged = (it.tags || []).filter(x => LG_TAGS.includes(x));
+    if (tagged.length) {                                   // "Cloud" the Gen.G player is also a CBLOL handle: a player name alone can't add a league the source didn't tag
+      const named = new Set(teamsIn(it.title || "", true).map(m => T[m.ti] && T[m.ti].lg));
+      Object.keys(c).forEach(l => { if (!tagged.includes(LG_SHORT[l] || l) && !named.has(l)) delete c[l]; });
+      tagged.forEach(l => { const k = Object.keys(LG_SHORT).find(x => LG_SHORT[x] === l) || l; if (!c[k]) c[k] = 0.5; });
+    }
     const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => LG_SHORT[x[0]] || x[0]);
     return top.length ? top.join(" · ") : ((it.tags || []).find(x => LG_TAGS.includes(x)) || "");
   };
