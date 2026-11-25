@@ -9,6 +9,7 @@ A League of Legends transfer tracker: provisional rosters for every major region
 | Tab | What it shows |
 |---|---|
 | **Home** | What the tool is, headline numbers, links in |
+| **Moves** (home) | The offseason as a live board: one row per player and destination, newest report first, with from → to, Signed / Re-signed / Rumour, and the outlet that reported it first. Built from the same headline parsing as the roster cards (`Rosters.moves()`), so the two never disagree. Headlines that don't name one player and one team are listed beside it |
 | **Provisional rosters** | One card (or a matrix row) per team: starters, coach, who is out of contract, projected slots for next season, rumours and news mentions |
 | **Feed & analytics** | Every collected item (LoL only), with filters, quality scores and trends |
 | **Contract Radar** | Expiry radar, market board, what changed, data health (full issue list) |
@@ -71,3 +72,8 @@ Config lives in `config.json`; categories and scoring in `radar/classify.py` and
 Visit counts use GoatCounter (no cookies, no personal data); set `docs/site-config.js` to `""` to turn it off. Contract data and logos come from [Contract Radar](https://set0panda.github.io/contract-radar/). Team logos are trademarks of their owners.
 
 Some data (league standings, LCK and LPL coaches, KR roles, roster-change records) comes from [Leaguepedia](https://lol.fandom.com), © Fandom, Inc., used under [CC BY-SA 3.0](https://www.fandom.com/licensing).
+
+
+## Design
+
+Palette after the League client: gold for signed, teal for rumours, parchment text on deep navy in dark mode and a cool light version for daytime. Type is Barlow and Barlow Condensed, self-hosted in `docs/fonts` (SIL OFL, see `OFL.txt`).

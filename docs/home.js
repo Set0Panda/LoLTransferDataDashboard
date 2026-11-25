@@ -1,63 +1,90 @@
-/* Home page: what the tool is, live numbers, and doors into the three views. */
+/* Home: the offseason as a live board of moves, newest first. One row per player and destination,
+   built from the same parsing the roster cards use (window.Rosters.moves), so the two never disagree. */
 (function () {
   const box = document.getElementById("viewHome");
   if (!box) return;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const MS = 864e5, ALIGNED = ["2026-11-16", "2027-11-15", "2028-11-20", "2029-11-19", "2030-11-18"];
   const MOVES = new Set(["Transfers & Rumors", "Contracts & Free Agency", "Roster Announcements"]);
+  const ORDER = ["LCK", "LPL", "LEC", "LCS", "CBLOL", "LCP"], SHORT = { "Circuito Desafiante": "CD" };
+  const ROLE = { TOP: "Top", JUNGLE: "Jungle", MID: "Mid", BOT: "Bot", SUPPORT: "Support", COACH: "Coach", SUB: "Sub" };
+  const S = { lg: "", st: "", n: 30 };
+  try { const v = JSON.parse(localStorage.getItem("radar.board") || "{}"); S.lg = v.lg || ""; S.st = v.st || ""; } catch (e) {}
+  const save = () => { try { localStorage.setItem("radar.board", JSON.stringify({ lg: S.lg, st: S.st })); } catch (e) {} };
+
+  const ago = (t, now) => {
+    const m = Math.max(0, Math.round((now - t) / 6e4));
+    return m < 60 ? m + " min" : m < 60 * 36 ? Math.round(m / 60) + " h" : Math.round(m / 1440) + " d";
+  };
+  const when = t => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const lgOf = t => SHORT[t.lg] || t.lg;
+
   function render() {
-    const NOW = Date.now(), R = window.RADAR || { items: [], meta: {} };
-    const items = R.items.filter(i => i.type === "newsletter" && MOVES.has(i.category));
-    const week = items.filter(i => NOW - Date.parse(i.published || i.seen) <= 7 * MS).length;
-    const CS = (window.ContractView && window.ContractView.stats) || {};
-    const players = CS.players || (window.GCD_ROWS || []).filter(r => ["TOP", "JUNGLE", "MID", "BOT", "SUPPORT"].includes(r[2])).length;
-    const teams = CS.teams || (window.GCD_TEAMS || []).filter(t => t[1]).length;
-    const nx = ALIGNED.find(d => Date.parse(d + "T23:59:00Z") >= NOW), days = nx ? Math.ceil((Date.parse(nx + "T23:59:00Z") - NOW) / MS) : null;
-    const tagsOf = i => {      // same tags as the feed: category, original language, then up to 3 topic tags (league tags are already shown as the league chip)
-      const lg = new Set(["LCK", "LEC", "LCS", "LPL", "LCP", "CBLOL", "LJL", "PCS", "VCS"]);
-      const tg = (i.tags || []).filter(x => !lg.has(x) && x !== i.category).slice(0, 3);
-      return `<span class="tag">${esc(i.category)}</span>${i.lang ? `<span class="tag" title="Original-language source">${esc(i.lang)}</span>` : ""}${tg.map(x => `<span class="tag">${esc(x)}</span>`).join("")}`;
+    const NOW = Date.now(), R = window.RADAR || { items: [] };
+    const all = (window.Rosters && Rosters.moves) ? Rosters.moves() : [];
+    const logo = t => (window.Rosters && Rosters.logo) ? Rosters.logo(t) : "";
+    const counts = {}; all.forEach(m => { const l = lgOf(m.to); counts[l] = (counts[l] || 0) + 1; });
+    const leagues = ORDER.filter(l => counts[l]).concat(Object.keys(counts).filter(l => !ORDER.includes(l) && l !== "(no league)").sort((a, b) => counts[b] - counts[a]));
+    if (S.lg && !counts[S.lg]) S.lg = "";
+    const shown = all.filter(m => (!S.lg || lgOf(m.to) === S.lg) && (!S.st || m.status === S.st));
+    const signed = all.filter(m => m.status === "signed").length, rum = all.length - signed;
+
+    const newest = all.find(m => m.last);
+    const fresh = newest ? `Last scoop <b>${ago(newest.last, NOW)} ago</b>: ${esc(newest.name)} to ${esc(newest.to.name)}, reported by ${esc(newest.items[newest.items.length - 1].source)}.` : "";
+
+    const row = m => {
+      const first = m.first, more = m.items.length - 1;
+      const src = first ? `<a href="${esc(first.url)}" target="_blank" rel="noopener">${esc(first.source)}</a>${more > 0 ? ` <span class="mvmore">and ${more} more</span>` : ""}`
+                        : (m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Announcement</a>` : `<span class="mvmore">Checked by hand</span>`);
+      const from = m.stay ? `<span class="mvteam mvnone">Stays at</span>` : m.from ? `<span class="mvteam">${logo(m.from)}<span>${esc(m.from.name)}</span></span>` : `<span class="mvteam mvnone">Unknown</span>`;
+      return `<li class="mv mv-${m.status}">
+        <time datetime="${m.last ? new Date(m.last).toISOString() : ""}" title="${m.last ? esc(when(m.last)) : ""}">${m.last ? ago(m.last, NOW) : ""}</time>
+        <span class="mvlg">${esc(lgOf(m.to))}</span>
+        <button type="button" class="mvpl" data-tm="${m.to.i}" data-pl="${esc(m.name)}" title="Open ${esc(m.to.name)}'s roster panel">${esc(m.name)}${m.role ? `<small>${esc(ROLE[m.role] || m.role)}</small>` : ""}</button>
+        <span class="mvroute">${from}${m.stay ? "" : `<svg class="mvarr" viewBox="0 0 16 10" aria-label="to"><path d="M1 5h13M10 1l4 4-4 4"/></svg>`}<span class="mvteam mvto">${logo(m.to)}<span>${esc(m.to.name)}</span></span></span>
+        <span class="mvst">${m.status === "signed" ? (m.stay ? "Re-signed" : "Signed") : "Rumour"}</span>
+        <span class="mvsrc">${first ? "First: " : ""}${src}</span>
+      </li>`;
     };
 
-    const byNew = items.slice().sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen));
-    const en = byNew.filter(i => !i.lang), latest = (en.length >= 6 ? en : en.concat(byNew.filter(i => i.lang))).slice(0, 6);   // most visitors read English; Korean/Chinese stay in the full feed
-    const ago = i => { const d = Math.max(0, Math.round((NOW - Date.parse(i.published || i.seen)) / MS)); return d === 0 ? "today" : d + "d ago"; };
-    const t = typeof showTitle === "function" ? showTitle : (x => x);
-    const tile = (n, l, k) => `<div class="hmtile t${k}"><b>${esc(n)}</b><span>${esc(l)}</span></div>`;
-    const RL = window.GCD_REGLOGOS || {}, REG = [["KR", "LCK"], ["EMEA", "LEC"], ["AME", "LCS"], ["CN", "LPL"], ["LCP", "LCP"]];
-    const regs = REG.filter(([g]) => RL[g]).map(([g, l]) => `<button type="button" class="hmreg" data-league="${g}|${l}" title="Open ${l} rosters"><img alt="" src="data:image/webp;base64,${RL[g]}"><b>${l}</b></button>`).join("");
-    const radar = `<svg class="hmradar" viewBox="0 0 240 240" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-opacity=".28"><circle cx="120" cy="120" r="108"/><circle cx="120" cy="120" r="76"/><circle cx="120" cy="120" r="44"/><path d="M120 12v216M12 120h216" stroke-opacity=".16"/></g><path class="hmsweep" d="M120 120L120 12A108 108 0 0 1 214 66Z" fill="var(--accent)" fill-opacity=".22"/><circle class="hmblip" cx="170" cy="70" r="5" fill="var(--ok)"/><circle class="hmblip b2" cx="70" cy="150" r="5" fill="var(--warn)"/><circle class="hmblip b3" cx="150" cy="170" r="5" fill="var(--accent)"/><circle class="hmblip b4" cx="92" cy="72" r="4" fill="var(--ok)"/></svg>`;
-    const ico = {
-      rosters: '<svg viewBox="0 0 24 24"><path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/></svg>',
-      feed: '<svg viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></svg>',
-      contract: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>' };
-    const door = (go, tone, h, p, cta) => `<button class="hmdoor ${tone}" data-go-tab="${go}"><span class="hmico">${ico[go]}</span><h3>${h}</h3><p>${p}</p><span class="hmcta">${cta} <i>→</i></span></button>`;
+    const used = new Set(); all.forEach(m => m.items.forEach(i => used.add(i.url)));
+    const other = (R.items || []).filter(i => i.type === "newsletter" && MOVES.has(i.category) && !i.lang && !used.has(i.url))
+      .sort((a, b) => Date.parse(b.published || b.seen) - Date.parse(a.published || a.seen)).slice(0, 8);
+
+    const chip = (key, val, label, n) => `<button type="button" class="bchip" data-${key}="${esc(val)}" aria-pressed="${S[key] === val}">${esc(label)}${n != null ? `<span>${n}</span>` : ""}</button>`;
+
     box.innerHTML = `
-      <section class="hmhero">${radar}<div class="hmhtxt"><span class="hmkick"><i class="live js-dot"></i><span class="js-status">${esc(window.statusTxt || "Live")}</span></span>
-        <h2>Every League of Legends roster move, rumour and contract expiry <em>in one place.</em></h2>
-        <p>LoL Transfer Radar combines Riot's contract database with transfer news from the LoL press, so you can see who is out of contract, who is linked with whom, and what each team's lineup could look like next season.</p>
-        <div class="hmbtns"><button class="chip hmprimary" data-go-tab="rosters">See provisional rosters</button><button class="chip" data-go-tab="contract">Who is out of contract</button><button class="chip" data-go-tab="feed">Read the feed</button></div>
-        <div class="hmregs">${regs}</div></div></section>
-      <div class="hmtiles">${tile(players ? players.toLocaleString() : "—", "players with a listed contract", "a")}${tile(teams || "—", "teams across the major regions", "b")}${tile(days != null ? days + (days === 1 ? " day" : " days") : "—", "to the aligned contract end date", "c")}${tile(week, "moves and rumours in the last 7 days", "d")}</div>
-      <div class="hmdoors">
-        ${door("rosters", "g", "Provisional rosters", "Projected lineups for every team, ordered by league standing. See open slots, who is expiring, and rumoured moves, with the headlines behind them one click away.", "Open rosters")}
-        ${door("feed", "b", "Feed &amp; analytics", "The full transfer-news feed, scored for quality and filterable by source, category and date, with charts of where the news is coming from.", "Open the feed")}
-        ${door("contract", "a", "Contract Radar", "Every listed contract by end date, a market board by role, what changed since the last snapshot, and how fresh each region's data is.", "Open Contract Radar")}
-      </div>
-      <div class="hmcols">
-        <section class="card"><h3 class="hmh">Latest moves and rumours</h3>${latest.length ? latest.map(i => `<div class="hmnews"><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(t(i.title))}</a><span class="dim">${(window.Rosters && Rosters.leagueOf(i)) ? `<span class="lgtag">${esc(Rosters.leagueOf(i))}</span> ` : ""}${esc(i.source)} · ${ago(i)}</span><div class="hmtags">${tagsOf(i)}</div></div>`).join("") : '<span class="dim">Nothing recent yet.</span>'}<button class="linkbtn" data-go-tab="feed" style="margin-top:8px">See the whole feed</button></section>
-        <section class="card"><h3 class="hmh">How it works</h3><ul class="hmlist">
-          <li><b>News</b> is collected several times a day from LoL outlets (including Sheep Esports via Google News), YouTube and GitHub, then filtered to League of Legends moves only.</li>
-          <li><b>Contracts</b> come from Riot's League-Recognized Contract Database, refreshed with every full update, every few hours (GitHub can run these late). Each region's sheet is updated on its own schedule, so check how old it is.</li>
-          <li><b>Rumours</b> are read from headlines and are unconfirmed. A listed end date is not confirmed free agency: extensions often are not on the sheet yet.</li></ul></section>
+      <section class="board">
+        <div class="bhead">
+          <h2>The 2027 offseason</h2>
+          <p class="bfresh">${fresh} <span class="bcheck">The press is checked every 15 minutes.</span></p>
+        </div>
+        <div class="bfilters">
+          <div class="bgroup" role="group" aria-label="League">${chip("lg", "", "All leagues", all.length)}${leagues.map(l => chip("lg", l, l, counts[l])).join("")}</div>
+          <div class="bgroup" role="group" aria-label="Status">${chip("st", "", "Everything")}${chip("st", "signed", "Signed", signed)}${chip("st", "rumour", "Rumours", rum)}</div>
+        </div>
+        ${shown.length ? `<ol class="mvlist">${shown.slice(0, S.n).map(row).join("")}</ol>` :
+          `<p class="bempty">No ${S.st === "signed" ? "signings" : S.st === "rumour" ? "rumours" : "moves"}${S.lg ? " in the " + esc(S.lg) : ""} yet. A move appears here as soon as a headline names a player and a team.</p>`}
+        ${shown.length > S.n ? `<button type="button" class="btn bmore">Show ${Math.min(30, shown.length - S.n)} more of ${shown.length - S.n}</button>` : ""}
+      </section>
+      <div class="bcols">
+        <section class="bside">
+          <h3>Other headlines</h3>
+          <p class="bnote">Roster news that doesn't name one player and one team, so it isn't on the board.</p>
+          ${other.length ? `<ul class="olist">${other.map(i => `<li><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a><span>${esc(i.source)}, ${ago(Date.parse(i.published || i.seen), NOW)} ago</span></li>`).join("")}</ul>` : `<p class="bnote">Nothing else right now.</p>`}
+          <button type="button" class="btn" data-go-tab="feed">Open the full feed</button>
+        </section>
+        <section class="bside">
+          <h3>How this works</h3>
+          <p>Headlines from Sheep Esports, Dot Esports, Korean and Chinese outlets and others are read every 15 minutes. A headline that names a player and a team becomes a row. "Signed" means a team announced it or an outlet reported it as done; everything else is a rumour until then.</p>
+          <p>Each row credits the outlet that reported it first. Rosters for every team, with who is under contract for 2027, are on the <button type="button" class="linkbtn" data-go-tab="rosters">Rosters</button> tab; expiring deals from Riot's contract database are on <button type="button" class="linkbtn" data-go-tab="contract">Contract Radar</button>.</p>
+        </section>
       </div>
       <p class="hint">Unofficial fan project, not affiliated with or endorsed by Riot Games. Team logos are trademarks of their owners. Anonymous visit counts (no cookies) via GoatCounter.</p>
-      <p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""} <span class="js-status">${esc(window.statusTxt || "")}</span>.</p>`;
-    box.querySelectorAll("[data-league]").forEach(b => b.onclick = () => {
-      const [g, l] = b.dataset.league.split("|");
-      if (window.Rosters && Rosters.setLeague) Rosters.setLeague(g + "|" + l);
-      showTab("rosters"); window.scrollTo({ top: 0 });
-    });
+      <p class="hint">${window.ATTRIB_LEAGUEPEDIA || ""}</p>`;
+
+    box.querySelectorAll("[data-lg]").forEach(b => b.onclick = () => { S.lg = b.dataset.lg; S.n = 30; save(); render(); });
+    box.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.st = b.dataset.st; S.n = 30; save(); render(); });
+    const more = box.querySelector(".bmore"); if (more) more.onclick = () => { S.n += 30; render(); };
     box.querySelectorAll("[data-go-tab]").forEach(b => b.onclick = () => { showTab(b.dataset.goTab); window.scrollTo({ top: 0 }); });
   }
   window.HomeView = { render };
