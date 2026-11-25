@@ -24,6 +24,9 @@ A League of Legends transfer tracker: provisional rosters for every major region
 | LCK / LPL coaches | `scripts/coach_sync.py` from Leaguepedia roster changes (secrets `LEAGUEPEDIA_USER`, `LEAGUEPEDIA_PASS`); shown with `*`. Riot's sheet has none for those two regions |
 | Leaguepedia rumours | Same script, same run: recent `RosterRumors` rows to `docs/rumors-extra.js`. Open rumours show on the cards with a link to the source; status, date and source are in the side panel |
 | Publishing and tests | GitHub Pages and `ci.yml` on every push |
+| Headline confirmations | `docs/rosters.js`. A headline in an official style ("X re-sign / signs / joins / secure Y", not "set to", "sources" or "in talks") confirms a move: the player appears as CONFIRMED on the new team, rumours naming other teams are dropped, and a confirmed slot hides its expiring list and rival rumours |
+| Last-known roles | `scripts/player_roles.py` writes `docs/player-roles.js` (region, handle, role, team) on every full run, merged from every contract snapshot and Contract Radar's KR roles. Riot deletes rows once a contract ends, so this keeps those players in their slot and keeps the relevance filter recognising them |
+| Teams Riot dropped | A team with no contracts left on the sheet (GiantX, Shifters after the deadline) is rebuilt from `docs/standings.js`, so its signings and rumours still show |
 | **Manual by design** | `docs/standings.js` (card order, copied from Leaguepedia; the site warns after 21 days), `docs/roster-overrides.js` (confirmed signings and departures; `scripts/verify_rosters.py` cross-checks the sheet against Leaguepedia, read-only, needs the bot secrets), `docs/coaches-manual.js` (coach fixes) |
 
 The header shows when the update job last ran and when new items last landed; its dot turns amber, then red, if runs stop arriving.
@@ -42,7 +45,7 @@ An item passes if it names League explicitly, or a known LoL player handle (afte
 ## Known limits
 
 - Riot's sheets lag: CN and EMEA are often weeks old. The Data health tab shows each region's age.
-- Matching is keyword-based. Rumours are read from headlines and are unconfirmed; expect misses on slang and non-English titles.
+- Matching is keyword-based. Rumours are read from headlines and are unconfirmed; expect misses on slang and non-English titles. Confirmations from headlines need the player's handle to be parsed cleanly; unusual phrasing can miss, and `docs/roster-overrides.js` is the manual fix.
 - Leaguepedia is volunteer-edited, so coaches and rumours can lag the real world.
 - Riot's sheet can be wrong, not just late (CN still had players who left in July). Overrides fix what has been checked; other leagues may still be stale.
 - GitHub Pages lags about a minute behind each push.
