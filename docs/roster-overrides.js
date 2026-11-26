@@ -61,4 +61,5 @@ window.ROSTER_OVERRIDES = [
 {player: "BrokenBlade", from: "G2 Esports", to: "Movistar KOI", role: "TOP", status: "confirmed", note: "Joined Movistar KOI (reported by Sheep and Dot Esports 8 to 13 Nov, confirmed 19 Nov 2026)"},
 {player: "Doran", from: "T1", to: "Dplus KIA", role: "TOP", status: "confirmed", note: "Joins Dplus KIA for 2027 (Sheep Esports, Hotspawn 20 Nov 2026)"},
 {player: "Kanavi", from: "Hanwha Life Esports", to: "Dplus KIA", role: "JUNGLE", status: "confirmed", note: "Joins Dplus KIA for 2027 (Sheep Esports, Hotspawn 20 Nov 2026); HLE announced his departure 19 Nov"},
+{player: "Kiin", from: "Gen.G", to: "Hanwha Life Esports", role: "TOP", status: "confirmed", note: "HLE announced Kiin and Canyon on 19 Nov 2026 (Sina, Hupu; Sheep reported it 20 Nov)"},
 ];

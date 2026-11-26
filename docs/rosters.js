@@ -188,10 +188,10 @@
     items.forEach(it => {
       if (SCOOPY.test(it.title)) return;
       let m, pls = [], tm = null;
-      if ((m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|acquire(?:s|d)?|add(?:s|ed)?|land(?:s|ed)?|bring(?:s)?\s+in)\s+(.+)$/i))) { tm = teamsIn(m[1], true)[0]; if (tm) pls = segHandles(m[2]); }
-      if (!pls.length && (m = it.title.match(/^(.+?)\s+(?:re-?sign(?:s)?\s+with|returns?\s+to\s+join|(?:departs?|leaves?|exits?)\s+.+?\s+to\s+join|to\s+join|joins?)\s+(.+)$/i))) { tm = teamsIn(m[2], true)[0]; if (tm) pls = segHandles(m[1]); }
+      if ((m = it.title.match(/^(.+?)\s+(?:officially\s+)?(?:re-?sign(?:s|ed)?|sign(?:s|ed)?|lock(?:s|ed)?\s+in|announce(?:s|d)?|secure(?:s|d)?|acquire(?:s|d)?|add(?:s|ed)?|land(?:s|ed)?|bring(?:s)?\s+in)\s+(.+)$/i))) { const cl = m[1].split(/[,:;]/).pop(), ts = teamsIn(cl, true); tm = ts[ts.length - 1]; if (tm) pls = segHandles(m[2].replace(/\b(?:to\s+)?(?:replace|succeed)\b.*$/i, "")); }   // the team right before the verb signs: "After falling to Gen.G…, HLE sign Canyon" is HLE
+      if (!pls.length && (m = it.title.match(/^(.+?)\s+(?:re-?sign(?:s)?\s+with|returns?\s+to\s+join|(?:departs?|leaves?|exits?)\s+.+?\s+to\s+join|to\s+join|joins?)\s+(.+)$/i))) { tm = teamsIn(m[2], true)[0]; if (tm) pls = segHandles(m[1].split(/,|:|;|\bas\b|\bwhile\b|\bwith\b|\bafter\b|\bwhereas\b/i).pop()); }   // only the clause next to "joins": "Gen.G rebuilds around Chovy and Ruler … as Canyon joins HLE" is Canyon alone
       if (!tm) return;
-      pls.forEach(pl => { confirmedVia(norm(pl), canon[tm.ti], it); if (!shown.has(norm(pl))) shown.set(norm(pl), pl); });
+      pls.forEach(pl => { if (teamsIn(pl, false).length) return; confirmedVia(norm(pl), canon[tm.ti], it); if (!shown.has(norm(pl))) shown.set(norm(pl), pl); });
     });
     // Official-style headline confirmations go on the destination card even when no rumour (or sheet row) exists for the player.
     confirmedTo.forEach((m, h) => m.forEach((ci, ti) => {
@@ -208,6 +208,12 @@
       const fi = c ? c.ti : fromName ? canon[teamByName[norm(fromName)]] : undefined;
       if (fi !== undefined && !leaving[fi + "|" + h]) leaving[fi + "|" + h] = Object.assign({ to: T[ti].name }, o);
     }));
+    confirmedTo.forEach((m, h) => {
+      if (m.size < 2) return;
+      if ([...m.values()].some(v => !v)) { [...m.keys()].forEach(k => { if (m.get(k)) m.delete(k); }); return; }      // an override beats any headline
+      const t = v => Date.parse(v.published || v.seen), best = [...m.entries()].sort((a, b) => t(b[1]) - t(a[1]))[0][0];
+      [...m.keys()].forEach(k => { if (k !== best) m.delete(k); });
+    });
     const addIn = (name, ti, role, fromTi, it) => {
       const h = norm(name), cand = handleIdx.get(h) || multiIdx.get(h) || [];
       const cf = confirmedTo.get(h);
@@ -516,7 +522,9 @@
   function moves() {
     const all = (window.RADAR && window.RADAR.items) || [], ts = i => Date.parse(i.published || i.seen);
     const hasName = (title, h) => new RegExp("(^|[^a-z0-9])" + h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(norm(title));
-    const reportsOf = (name, ti) => all.filter(i => hasName(i.title, norm(name)) && teamsIn(i.title, true).some(m => canon[m.ti] === ti));
+    // the KR sheet has no team codes, so three-word names fall back to initials ("Hanwha Life Esports" is HLE)
+    const codeRe = ti => { const w = T[ti].name.replace(/\(.*?\)/g, "").trim().split(/\s+/), c = (T[ti].code || (w.length >= 3 ? w.map(x => x[0]).join("").toUpperCase() : "")).trim(); return c.length >= 2 ? new RegExp("(^|[^A-Za-z0-9])" + c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^A-Za-z0-9]|$)") : null; };
+    const reportsOf = (name, ti) => { const cr = codeRe(ti); return all.filter(i => hasName(i.title, norm(name)) && (teamsIn(i.title, true).some(m => canon[m.ti] === ti) || (cr && cr.test(i.title)))); };   // "set to join HLE": short codes count once the player is named
     const out = [];
     T.forEach(t => {
       if (t.i !== canon[t.i]) return;
